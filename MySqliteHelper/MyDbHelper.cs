@@ -145,11 +145,11 @@ namespace MySqliteHelper
         //升级表，增加表缺少的列
         private void TryUpgradeTable(MyDbTable t)
         {
-            HashSet<string> dbColumns = QueryColumnsOfTableInDb(t.TableName);                        
-            SQLiteTransaction trans = mConnection.BeginTransaction();
+            HashSet<string> dbColumns = QueryColumnsOfTableInDb(t.TableName);                                    
             SQLiteCommand addColumnCmd = new SQLiteCommand(mConnection);            
             //如果列的数量没有变化，那么不用升级。因为sqlite只支持增加列数，不支持删除。
             if (dbColumns.Count == t.ColumnInfos.Length) return;
+            SQLiteTransaction trans = mConnection.BeginTransaction();
             foreach (MyDbField clm in t.ColumnInfos)
             {
                 if (!dbColumns.Contains(clm.name))
