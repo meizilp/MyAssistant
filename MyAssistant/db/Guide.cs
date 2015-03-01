@@ -35,13 +35,7 @@ namespace MyAssistant.db
 
         public List<Guide> GetChildGuides()
         {
-            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
-            cmd.CommandText = String.Format("SELECT * FROM {0} WHERE {1}=@{1} AND {2}=@{2} ORDER BY {3}",
-                mTable.TableName, FIELD_PARENT.name, FIELD_DELETE_TYPE.name, FIELD_CHILD_NO.name);
-            cmd.Parameters.Add(new SQLiteParameter(FIELD_PARENT.name){Value= this.id});
-            cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_NOT_DELETE });           
-
-            SQLiteDataReader reader = cmd.ExecuteReader();
+            SQLiteDataReader reader = GetChildren();
             List<Guide> results = new List<Guide>();
             do
             {
@@ -54,6 +48,72 @@ namespace MyAssistant.db
             return results;
         }
 
+        private string GetFullIdPath()
+        {
+            if (this.id_dir == null) return this.id;
+            return this.id_dir + "-" + this.id;
+        }
+
+        private void InsertToDB()
+        {
+            base.InsertToDB(new SQLiteParameter[] { 
+                new SQLiteParameter(FIELD_ID.name){Value = id},
+                new SQLiteParameter(FIELD_PARENT.name){Value = parent},
+                new SQLiteParameter(FIELD_CHILD_NO.name){Value = child_no},
+                new SQLiteParameter(FIELD_TEXT.name){Value = text},
+                new SQLiteParameter(FIELD_TYPE.name){Value = type},
+                new SQLiteParameter(FIELD_ID_DIR.name){Value = id_dir},
+            });
+        }
+
+        public void AppendNewChild(Guide newChild)
+        {            
+            this.next_child_no += MyAssistantDbHelper.CHILD_ITEM_SPAN;
+            this.child_guide_num += 1;
+            newChild.parent = this.id;
+            newChild.child_no = this.next_child_no;
+            newChild.id_dir = this.GetFullIdPath();
+            //保存
+            //SQLiteTransaction trans = mDb.BeginTransaction();
+            newChild.InsertToDB();
+            this.UpdateToDB(new SQLiteParameter[] { 
+                new SQLiteParameter(FIELD_NEXT_CHILD_NO.name){Value = this.next_child_no},
+                new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
+            });            
+            //trans.Commit();
+        }
+
+        public void InsertNewChildBetween(Guide newChild, Guide before, Guide after)
+        {
+            if (newChild == null) return;
+            if (after == null)
+            {//后面没有子节点
+                AppendNewChild(newChild);
+                return;
+            }
+            else
+            {
+                this.child_guide_num += 1;
+                newChild.parent = this.id;
+                newChild.id_dir = this.GetFullIdPath();
+                if (before == null)
+                {//在首部添加
+                    newChild.child_no = after.child_no / 2;
+                }
+                else
+                {//在两个对象之间添加
+                    newChild.child_no = (before.child_no + after.child_no) / 2;
+                }
+                //保存
+                SQLiteTransaction trans = mDb.BeginTransaction();
+                newChild.InsertToDB();
+                this.UpdateToDB(new SQLiteParameter[] {                 
+                    new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
+                });
+                trans.Commit();
+            }
+        }
+        
         private static Guide CreateRootGuide(int type)
         {
             Guide result;
@@ -62,11 +122,12 @@ namespace MyAssistant.db
                 result = new Guide(COLLECT_GUIDE_ROOT_ID);
                 result.type = type;
                 result.text = "收集向导";
-                result.InsertToDB(new SQLiteParameter[]{
-                    new SQLiteParameter(FIELD_ID.name, result.id),
-                    new SQLiteParameter(FIELD_TYPE.name, result.type),
-                    new SQLiteParameter(FIELD_TEXT.name, result.text),
-                });
+                //result.InsertToDB(new SQLiteParameter[]{
+                //    new SQLiteParameter(FIELD_ID.name){Value = result.id},
+                //    new SQLiteParameter(FIELD_TYPE.name){Value = result.type},
+                //    new SQLiteParameter(FIELD_TEXT.name){Value = result.text},
+                //});
+                result.InsertToDB();
                 return result;  
             }
             return null;
@@ -99,7 +160,7 @@ namespace MyAssistant.db
                 
         public string text { get; set; }
         private const string NAME_OF_FIELD_TEXT = "text";
-        private static MyDbField FIELD_TEXT = new MyDbField(NAME_OF_FIELD_TEXT, MyDbField.TYPE_TEXT, null);
+        public static MyDbField FIELD_TEXT = new MyDbField(NAME_OF_FIELD_TEXT, MyDbField.TYPE_TEXT, null);
         
         public int child_guide_num { get; set; }
         private const string NAME_OF_FIELD_CHILD_GUIDE_NUM = "child_guide_num";

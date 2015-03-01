@@ -24,5 +24,7 @@ namespace MyAssistant.db
         {
             return mAllTables;
         }
+
+        public const long CHILD_ITEM_SPAN = 524288L;
     }
 }

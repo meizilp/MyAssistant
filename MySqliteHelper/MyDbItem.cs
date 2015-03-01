@@ -124,7 +124,7 @@ namespace MySqliteHelper
             }
             cmd.CommandText = String.Format("UPDATE {0} SET {1} WHERE {2}=@{2}", 
                 GetMyDbTable().TableName, paramClms.ToString(), FIELD_ID.name);
-            cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = this.id });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = this.id });            
             cmd.ExecuteNonQuery();            
         }    
 

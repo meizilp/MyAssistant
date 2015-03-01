@@ -42,6 +42,7 @@
             // treeGuides
             // 
             this.treeGuides.AllColumns.Add(this.olvClmText);
+            this.treeGuides.CellEditActivation = BrightIdeasSoftware.ObjectListView.CellEditActivateMode.DoubleClick;
             this.treeGuides.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.olvClmText});
             this.treeGuides.ContextMenuStrip = this.cxtMenu;
@@ -57,6 +58,7 @@
             this.treeGuides.UseCompatibleStateImageBehavior = false;
             this.treeGuides.View = System.Windows.Forms.View.Details;
             this.treeGuides.VirtualMode = true;
+            this.treeGuides.CellEditFinishing += new BrightIdeasSoftware.CellEditEventHandler(this.treeGuides_CellEditFinishing);
             // 
             // olvClmText
             // 
@@ -72,25 +74,28 @@
             this.menuNewChildGuide,
             this.menuDelete});
             this.cxtMenu.Name = "cxtMenu";
-            this.cxtMenu.Size = new System.Drawing.Size(153, 92);
+            this.cxtMenu.Size = new System.Drawing.Size(125, 70);
             // 
             // menuNewGuide
             // 
             this.menuNewGuide.Name = "menuNewGuide";
-            this.menuNewGuide.Size = new System.Drawing.Size(152, 22);
+            this.menuNewGuide.Size = new System.Drawing.Size(124, 22);
             this.menuNewGuide.Text = "新建";
+            this.menuNewGuide.Click += new System.EventHandler(this.menuNewGuide_Click);
             // 
             // menuNewChildGuide
             // 
             this.menuNewChildGuide.Name = "menuNewChildGuide";
-            this.menuNewChildGuide.Size = new System.Drawing.Size(152, 22);
+            this.menuNewChildGuide.Size = new System.Drawing.Size(124, 22);
             this.menuNewChildGuide.Text = "新建子项";
+            this.menuNewChildGuide.Click += new System.EventHandler(this.menuNewChildGuide_Click);
             // 
             // menuDelete
             // 
             this.menuDelete.Name = "menuDelete";
-            this.menuDelete.Size = new System.Drawing.Size(152, 22);
+            this.menuDelete.Size = new System.Drawing.Size(124, 22);
             this.menuDelete.Text = "删除";
+            this.menuDelete.Click += new System.EventHandler(this.menuDelete_Click);
             // 
             // FormGuide
             // 

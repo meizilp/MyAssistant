@@ -1,13 +1,23 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using System.Data.SQLite;
 
 namespace MySqliteHelper
 {
     public abstract class MyDbTreeItem : MyDbItem
     {
+        //Get Children
+        protected SQLiteDataReader GetChildren()
+        {//select * from table where parent = this.id and delete_type = 0 order by child_no
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
+            cmd.CommandText = String.Format("SELECT * FROM {0} WHERE {1}=@{1} AND {2}=@{2} ORDER BY {3}",
+                GetMyDbTable().TableName, FIELD_PARENT.name, FIELD_DELETE_TYPE.name, FIELD_CHILD_NO.name);
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_PARENT.name) { Value = this.id });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_NOT_DELETE });
+            return cmd.ExecuteReader();            
+        }
 
         //get all descendants。LIKE id_dir + self.id%
 
