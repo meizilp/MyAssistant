@@ -46,94 +46,19 @@ namespace MyAssistant.db
             } while (reader.NextResult());
             reader.Close();
             return results;
-        }       
+        }
 
-        private void InsertToDB()
+        protected override SQLiteParameter[] GetParamsOfInsertToDB()
         {
-            InsertToDB(new SQLiteParameter[] { 
+            return new SQLiteParameter[] { 
                 new SQLiteParameter(FIELD_ID.name){Value = id},
                 new SQLiteParameter(FIELD_PARENT.name){Value = parent},
                 new SQLiteParameter(FIELD_CHILD_NO.name){Value = child_no},
                 new SQLiteParameter(FIELD_TEXT.name){Value = text},
                 new SQLiteParameter(FIELD_TYPE.name){Value = type},
-                new SQLiteParameter(FIELD_ID_DIR.name){Value = id_dir},
-            });
-        }
-
-        public void AppendNewChild(Guide newChild)
-        {            
-            this.next_child_no += MyAssistantDbHelper.CHILD_ITEM_SPAN;
-            this.child_guide_num += 1;
-            newChild.parent = this.id;
-            newChild.child_no = this.next_child_no;
-            newChild.id_dir = this.GetFullIdPath();
-            //保存
-            SQLiteTransaction trans = mDb.BeginTransaction();
-            newChild.InsertToDB();
-            this.UpdateToDB(new SQLiteParameter[] { 
-                new SQLiteParameter(FIELD_NEXT_CHILD_NO.name){Value = this.next_child_no},
-                new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
-            });            
-            trans.Commit();
-        }
-
-        public void InsertNewChildBetween(Guide newChild, Guide before, Guide after)
-        {
-            if (newChild == null) return;
-            if (after == null)
-            {//后面没有子节点
-                AppendNewChild(newChild);
-                return;
-            }
-            else
-            {
-                this.child_guide_num += 1;
-                newChild.parent = this.id;
-                newChild.id_dir = this.GetFullIdPath();
-                if (before == null)
-                {//在首部添加
-                    newChild.child_no = after.child_no / 2;
-                }
-                else
-                {//在两个对象之间添加
-                    newChild.child_no = (before.child_no + after.child_no) / 2;
-                }
-                //保存
-                SQLiteTransaction trans = mDb.BeginTransaction();
-                newChild.InsertToDB();
-                this.UpdateToDB(new SQLiteParameter[] {                 
-                    new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
-                });
-                trans.Commit();
-            }
-        }
-
-        public void DeleteChild(Guide child)
-        {
-            if (child == null) return;
-            this.child_guide_num -= 1;
-            child.delete_type = DELETE_TYPE_BY_USER;
-            SQLiteTransaction trans = mDb.BeginTransaction();
-            //update parent
-            this.UpdateToDB(new SQLiteParameter[] {                 
-                    new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
-            });
-            //update child
-            child.UpdateToDB(new SQLiteParameter[] {                 
-                    new SQLiteParameter(FIELD_DELETE_TYPE.name){Value = child.delete_type},
-                });
-            //update descendants of child
-            if (child.child_guide_num != 0)
-            {//Update guide SET delete_type=delete_by_parent where id_dir like child.id_dir + "-" + child.id%
-                SQLiteCommand cmd = new SQLiteCommand(mDb.connection);                
-                cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {2} LIKE @{2}",
-                    GetMyDbTable().TableName, FIELD_DELETE_TYPE.name, FIELD_ID_DIR.name);
-                cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_BY_PARENT });
-                cmd.Parameters.Add(new SQLiteParameter(FIELD_ID_DIR.name) { Value = child.GetFullIdPath() + "%" });
-                cmd.ExecuteNonQuery();            
-            }
-            trans.Commit();
-        }
+                new SQLiteParameter(FIELD_ID_DIR.name){Value = id_dir}, 
+            };
+        }        
         
         private static Guide CreateRootGuide(int type)
         {
@@ -161,10 +86,7 @@ namespace MyAssistant.db
             {                
                 case NAME_OF_FIELD_TEXT:
                     text = reader.GetString(valueIndex);
-                    break;             
-                case NAME_OF_FIELD_CHILD_GUIDE_NUM:
-                    child_guide_num = reader.GetInt32(valueIndex);
-                    break;                
+                    break;                             
                 case NAME_OF_FIELD_TYPE:
                     type = reader.GetInt32(valueIndex);
                     break;
@@ -177,30 +99,28 @@ namespace MyAssistant.db
         public string text { get; set; }
         private const string NAME_OF_FIELD_TEXT = "text";
         public static MyDbField FIELD_TEXT = new MyDbField(NAME_OF_FIELD_TEXT, MyDbField.TYPE_TEXT, null);
-        
-        public int child_guide_num { get; set; }
-        private const string NAME_OF_FIELD_CHILD_GUIDE_NUM = "child_guide_num";
-        private static MyDbField FIELD_CHILD_GUIDE_NUM = new MyDbField(NAME_OF_FIELD_CHILD_GUIDE_NUM, MyDbField.TYPE_INTEGER, "DEFAULT 0");
-
+                
         public int type { get; set; }
         private const string NAME_OF_FIELD_TYPE = "type";
         private static MyDbField FIELD_TYPE = new MyDbField(NAME_OF_FIELD_TYPE, MyDbField.TYPE_INTEGER, "NOT NULL");
 
-        private static MyDbField[] mFields = {
-                                                FIELD_ID,
-                                                FIELD_DELETE_TYPE,
-                                                FIELD_PARENT,
-                                                FIELD_CHILD_NO,
-                                                FIELD_NEXT_CHILD_NO,
-                                                FIELD_TEXT,                                                
-                                                FIELD_CHILD_GUIDE_NUM,                                                
-                                                FIELD_TYPE,    
-                                                FIELD_ID_DIR,
-                                             };
-        private static MyDbIndex[] mIndexes = {
-                                                  
-                                              };
-        internal static MyDbTable mTable = new MyDbTable("guide", mFields, mIndexes);
+        
+        private static List<MyDbField> mMyFields = new List<MyDbField>()
+        {
+            FIELD_TEXT,
+            FIELD_TYPE,
+        };
+
+        private static List<MyDbIndex> mMyIndexes = new List<MyDbIndex>()
+        {                                                  
+        };
+
+        internal static MyDbTable mTable = new MyDbTable(
+            "guide", 
+            MyDbTreeItem.CalFields(mMyFields), 
+            MyDbTreeItem.CalIndexes(mMyIndexes)
+            );
+
         public override MyDbTable GetMyDbTable()
         {
             return mTable;

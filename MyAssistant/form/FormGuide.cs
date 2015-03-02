@@ -24,7 +24,7 @@ namespace MyAssistant.form
             treeGuides.CanExpandGetter = delegate(object row)
             {
                 Guide guide = row as Guide;
-                if (guide.child_guide_num != 0 || 
+                if (guide.child_count != 0 || 
                     (mNewGuide != null && mNewGuide.parentObject.Equals(guide))) return true;
                 return false;
             };
@@ -43,6 +43,9 @@ namespace MyAssistant.form
             roots.Add(mRoot);
             treeGuides.Roots = roots;
             treeGuides.ExpandAll();
+
+            SimpleDropSink sink = treeGuides.DropSink as SimpleDropSink;
+            sink.CanDropBetween = true;
         }
 
         private void menuNewGuide_Click(object sender, EventArgs e)
@@ -52,7 +55,7 @@ namespace MyAssistant.form
             {//没有选择任何节点，在根节点的最后添加。
                 mNewGuide.siblingObject = null;
                 mNewGuide.parentObject = mRoot;
-                mNewGuide.index = mRoot.child_guide_num;
+                mNewGuide.index = mRoot.child_count;
             }
             else 
             {//在选中节点的后面添加
@@ -79,7 +82,7 @@ namespace MyAssistant.form
             {//在选中节点的子列表最后面添加                
                 mNewGuide.parentObject = treeGuides.SelectedObject as Guide;                                
             }
-            mNewGuide.index = mNewGuide.parentObject.child_guide_num;
+            mNewGuide.index = mNewGuide.parentObject.child_count;
 
             if (treeGuides.IsExpanded(mNewGuide.parentObject)) treeGuides.RefreshObject(mNewGuide.parentObject);
             else treeGuides.Expand(mNewGuide.parentObject);
@@ -179,6 +182,43 @@ namespace MyAssistant.form
                     ConfirmEditGuide(e.RowObject as Guide, e);
                 }//else 放弃编辑则没有任何影响
             }
+        }
+
+        private void treeGuides_ModelCanDrop(object sender, ModelDropEventArgs e)
+        {            
+            if (e.TargetModel != null)
+            {                
+                Guide target = e.TargetModel as Guide;
+                foreach (Guide src in e.SourceModels)
+                {
+                    if( src.parent == null ||
+                        target.id.Equals(src.id) ||
+                        (src.parent != null && target.id.Equals(src.parent))||
+                        (target.id_dir != null && target.id_dir.Contains(src.id))
+                      )
+                    {//不允许拖动根节点；不允许拖动到自身、自身的直接parent、自身的子孙
+                        e.Effect = DragDropEffects.None;
+                        return;
+                    }
+                }                
+            }
+            e.Effect = DragDropEffects.Move;
+        }
+
+        private void treeGuides_ModelDropped(object sender, ModelDropEventArgs e)
+        {
+            if (e.TargetModel == null) return;
+            switch (e.DropTargetLocation)
+            {
+                case DropTargetLocation.Item:
+                    
+                    break;
+                case DropTargetLocation.AboveItem:
+                    break;
+                case DropTargetLocation.BelowItem:
+                    break;
+            }
+            e.RefreshObjects();
         }
     }
 

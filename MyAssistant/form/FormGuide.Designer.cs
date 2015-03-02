@@ -49,6 +49,8 @@
             this.treeGuides.Dock = System.Windows.Forms.DockStyle.Fill;
             this.treeGuides.FullRowSelect = true;
             this.treeGuides.HideSelection = false;
+            this.treeGuides.IsSimpleDragSource = true;
+            this.treeGuides.IsSimpleDropSink = true;
             this.treeGuides.Location = new System.Drawing.Point(0, 0);
             this.treeGuides.Name = "treeGuides";
             this.treeGuides.OwnerDraw = true;
@@ -59,6 +61,8 @@
             this.treeGuides.View = System.Windows.Forms.View.Details;
             this.treeGuides.VirtualMode = true;
             this.treeGuides.CellEditFinishing += new BrightIdeasSoftware.CellEditEventHandler(this.treeGuides_CellEditFinishing);
+            this.treeGuides.ModelCanDrop += new System.EventHandler<BrightIdeasSoftware.ModelDropEventArgs>(this.treeGuides_ModelCanDrop);
+            this.treeGuides.ModelDropped += new System.EventHandler<BrightIdeasSoftware.ModelDropEventArgs>(this.treeGuides_ModelDropped);
             // 
             // olvClmText
             // 

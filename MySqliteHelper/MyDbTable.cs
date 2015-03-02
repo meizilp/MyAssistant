@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Collections.Generic;
 
 namespace MySqliteHelper
 {    
@@ -16,31 +17,25 @@ namespace MySqliteHelper
             get { return _tableName; }
         }
 
-        private MyDbField[] _columnInfos;
+        private List<MyDbField> _columnInfos;
         /// <summary>
         /// 表的列信息。                
         /// </summary>
-        public MyDbField[] ColumnInfos
+        public List<MyDbField> ColumnInfos
         {
             get { return _columnInfos; }
         }
 
-        private MyDbIndex[] _indexInfos;
+        private List<MyDbIndex> _indexInfos;
         /// <summary>
         /// 在此表上创建的索引的信息。
         /// </summary>
-        public MyDbIndex[] IndexInfos
+        public List<MyDbIndex> IndexInfos
         {
             get { return _indexInfos; }
         }
 
-        /// <summary>
-        /// 表信息。
-        /// </summary>
-        /// <param name="tableName"></param>
-        /// <param name="columnInfos"></param>
-        /// <param name="indexInfos"></param>
-        public MyDbTable(string tableName, MyDbField[] columnInfos, MyDbIndex[] indexInfos)
+        public MyDbTable(string tableName, List<MyDbField> columnInfos, List<MyDbIndex> indexInfos)
         {
             _tableName = tableName;
             _columnInfos = columnInfos;

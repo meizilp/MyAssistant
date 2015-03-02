@@ -73,7 +73,7 @@ namespace MySqliteHelper
                     if (dbTables.Contains(t.TableName)) TryUpgradeTable(t);
                     else CreateTable(t);                    
                     //依次检测本表要创建的索引，不存在则创建索引                    
-                    for (int i = 0; i < t.IndexInfos.Length; ++i)
+                    for (int i = 0; i < t.IndexInfos.Count; ++i)
                     {
                         if (!dbIndexes.Contains(t.IndexInfos[i].name))
                         {//索引表在库中尚不存在则创建
@@ -148,7 +148,7 @@ namespace MySqliteHelper
             HashSet<string> dbColumns = QueryColumnsOfTableInDb(t.TableName);                                    
             SQLiteCommand addColumnCmd = new SQLiteCommand(mConnection);            
             //如果列的数量没有变化，那么不用升级。因为sqlite只支持增加列数，不支持删除。
-            if (dbColumns.Count == t.ColumnInfos.Length) return;
+            if (dbColumns.Count == t.ColumnInfos.Count) return;
             SQLiteTransaction trans = mConnection.BeginTransaction();
             foreach (MyDbField clm in t.ColumnInfos)
             {
@@ -191,6 +191,8 @@ namespace MySqliteHelper
         public SQLiteTransaction BeginTransaction()
         {
             return mConnection.BeginTransaction();
-        }                        
+        }
+
+        public const long CHILD_ITEM_SPAN = 1048576L;
     }
 }
