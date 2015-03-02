@@ -70,12 +70,34 @@ namespace MyAssistant.form
 
         private void menuNewChildGuide_Click(object sender, EventArgs e)
         {
+            mNewGuide = new NewGuideWrapper();
+            if (treeGuides.SelectedObject == null)
+            {//没有选择任何节点，在根节点的最后添加。                
+                mNewGuide.parentObject = mRoot;                
+            }
+            else
+            {//在选中节点的子列表最后面添加                
+                mNewGuide.parentObject = treeGuides.SelectedObject as Guide;                                
+            }
+            mNewGuide.index = mNewGuide.parentObject.child_guide_num;
 
+            if (treeGuides.IsExpanded(mNewGuide.parentObject)) treeGuides.RefreshObject(mNewGuide.parentObject);
+            else treeGuides.Expand(mNewGuide.parentObject);
+
+            treeGuides.EditModel(mNewGuide);
         }
 
         private void menuDelete_Click(object sender, EventArgs e)
         {
-
+            Guide target = treeGuides.SelectedObject as Guide;
+            if (target == null || target.parent == null) 
+            {
+                MessageBox.Show("空节点或根节点不能删除！");
+                return; 
+            }
+            Guide parent = treeGuides.GetParent(target) as Guide;
+            parent.DeleteChild(target);
+            treeGuides.RefreshObject(parent);
         }
 
         private NewGuideWrapper mNewGuide;
@@ -115,7 +137,7 @@ namespace MyAssistant.form
                 Guide after;
                 if (tmpGuide.index == children.Count) after = null; //新节点后面不再有兄弟节点
                 else after = children[tmpGuide.index];      //原来这个位置的对象会被挤到后面
-                parent.InsertNewChildBetween(tmpGuide, before, after);
+                parent.InsertNewChildBetween(newGuide, before, after);
             }
             
             //刷新父对象

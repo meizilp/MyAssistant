@@ -22,7 +22,11 @@ namespace MyAssistant
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormGuide());
-            if (db != null) { db.Close(); db = null; }
+            if (db != null) 
+            { 
+                db.Close(); 
+                db = null; 
+            }
         }
     }
 }

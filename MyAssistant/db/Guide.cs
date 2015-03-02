@@ -46,17 +46,11 @@ namespace MyAssistant.db
             } while (reader.NextResult());
             reader.Close();
             return results;
-        }
-
-        private string GetFullIdPath()
-        {
-            if (this.id_dir == null) return this.id;
-            return this.id_dir + "-" + this.id;
-        }
+        }       
 
         private void InsertToDB()
         {
-            base.InsertToDB(new SQLiteParameter[] { 
+            InsertToDB(new SQLiteParameter[] { 
                 new SQLiteParameter(FIELD_ID.name){Value = id},
                 new SQLiteParameter(FIELD_PARENT.name){Value = parent},
                 new SQLiteParameter(FIELD_CHILD_NO.name){Value = child_no},
@@ -74,13 +68,13 @@ namespace MyAssistant.db
             newChild.child_no = this.next_child_no;
             newChild.id_dir = this.GetFullIdPath();
             //保存
-            //SQLiteTransaction trans = mDb.BeginTransaction();
+            SQLiteTransaction trans = mDb.BeginTransaction();
             newChild.InsertToDB();
             this.UpdateToDB(new SQLiteParameter[] { 
                 new SQLiteParameter(FIELD_NEXT_CHILD_NO.name){Value = this.next_child_no},
                 new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
             });            
-            //trans.Commit();
+            trans.Commit();
         }
 
         public void InsertNewChildBetween(Guide newChild, Guide before, Guide after)
@@ -113,6 +107,33 @@ namespace MyAssistant.db
                 trans.Commit();
             }
         }
+
+        public void DeleteChild(Guide child)
+        {
+            if (child == null) return;
+            this.child_guide_num -= 1;
+            child.delete_type = DELETE_TYPE_BY_USER;
+            SQLiteTransaction trans = mDb.BeginTransaction();
+            //update parent
+            this.UpdateToDB(new SQLiteParameter[] {                 
+                    new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
+            });
+            //update child
+            child.UpdateToDB(new SQLiteParameter[] {                 
+                    new SQLiteParameter(FIELD_DELETE_TYPE.name){Value = child.delete_type},
+                });
+            //update descendants of child
+            if (child.child_guide_num != 0)
+            {//Update guide SET delete_type=delete_by_parent where id_dir like child.id_dir + "-" + child.id%
+                SQLiteCommand cmd = new SQLiteCommand(mDb.connection);                
+                cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {2} LIKE @{2}",
+                    GetMyDbTable().TableName, FIELD_DELETE_TYPE.name, FIELD_ID_DIR.name);
+                cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_BY_PARENT });
+                cmd.Parameters.Add(new SQLiteParameter(FIELD_ID_DIR.name) { Value = child.GetFullIdPath() + "%" });
+                cmd.ExecuteNonQuery();            
+            }
+            trans.Commit();
+        }
         
         private static Guide CreateRootGuide(int type)
         {
@@ -121,12 +142,7 @@ namespace MyAssistant.db
             {
                 result = new Guide(COLLECT_GUIDE_ROOT_ID);
                 result.type = type;
-                result.text = "收集向导";
-                //result.InsertToDB(new SQLiteParameter[]{
-                //    new SQLiteParameter(FIELD_ID.name){Value = result.id},
-                //    new SQLiteParameter(FIELD_TYPE.name){Value = result.type},
-                //    new SQLiteParameter(FIELD_TEXT.name){Value = result.text},
-                //});
+                result.text = "收集向导";                
                 result.InsertToDB();
                 return result;  
             }

@@ -19,6 +19,30 @@ namespace MySqliteHelper
             return cmd.ExecuteReader();            
         }
 
+        //Get Root Node's ID
+        public string GetRootID()
+        {
+            if (this.parent == null) return this.id;
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
+            cmd.CommandText = String.Format("SELECT substr({1},1,32) FROM {0} WHERE {2}=@{2}",
+                GetMyDbTable().TableName, FIELD_ID_DIR.name, FIELD_ID.name);
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = this.id });
+            SQLiteDataReader reader = cmd.ExecuteReader();
+            string result = null;
+            if (reader.Read())
+            {
+                result = reader.GetString(0);
+            }
+            reader.Close();
+            return result;
+        }
+
+        protected string GetFullIdPath()
+        {
+            if (this.id_dir == null) return this.id;
+            return this.id_dir + "-" + this.id;
+        }
+
         //get all descendants。LIKE id_dir + self.id%
 
         //is ancestor。 if( other.id_dir.contains(self.id) ) then true。
