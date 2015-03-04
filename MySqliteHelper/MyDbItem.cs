@@ -18,6 +18,7 @@ namespace MySqliteHelper
         /// 当前被打开的数据库实例。
         /// </summary>
         public static MyDbHelper mDb;
+
         /// <summary>
         /// 两个对象的id只要一样就认为是同样的对象。
         /// </summary>
@@ -42,7 +43,7 @@ namespace MySqliteHelper
 
         /// <summary>
         /// 获取插入对象时需要的参数，用来配合InsertToDB()。
-        /// 插入对象时的字段不像Update变化那么大，所以可以提供一个公用函数，以简化实现。
+        /// 插入对象时的字段不像Update变化那么大，所以可以提供一个公用函数，以简化子类实现。
         /// </summary>
         /// <returns></returns>
         protected abstract SQLiteParameter[] GetParamsOfInsertToDB();
@@ -100,7 +101,10 @@ namespace MySqliteHelper
                     break;
                 case NAME_OF_FIELD_CHILD_NO:
                     this.child_no = reader.GetInt64(valueIndex);
-                    break;                
+                    break;
+                case NAME_OF_FIELD_NEXT_CHILD_NO:
+                    this.next_child_no = reader.GetInt64(valueIndex);
+                    break;
             }            
         }
 
@@ -181,7 +185,11 @@ namespace MySqliteHelper
         /// </summary>
         public long child_no { get; set; }
         private const string NAME_OF_FIELD_CHILD_NO = "child_no";
-        public static MyDbField FIELD_CHILD_NO = new MyDbField(NAME_OF_FIELD_CHILD_NO, MyDbField.TYPE_INTEGER, "DEFAULT 0");        
+        public static MyDbField FIELD_CHILD_NO = new MyDbField(NAME_OF_FIELD_CHILD_NO, MyDbField.TYPE_INTEGER, "DEFAULT 0");
+
+        public long next_child_no { get; set; }
+        private const string NAME_OF_FIELD_NEXT_CHILD_NO = "next_child_no";
+        public static MyDbField FIELD_NEXT_CHILD_NO = new MyDbField(NAME_OF_FIELD_NEXT_CHILD_NO, MyDbField.TYPE_INTEGER, "DEFAULT 0");
                  
         /// <summary>
         /// 标记此对象是否已经被删除。0,1,2。
@@ -189,6 +197,8 @@ namespace MySqliteHelper
         protected int delete_type { get; set; }
         private const string NAME_OF_FIELD_DELETE_TYPE = "delete_type";
         public static MyDbField FIELD_DELETE_TYPE = new MyDbField(NAME_OF_FIELD_DELETE_TYPE, MyDbField.TYPE_INTEGER, "DEFAULT " + DELETE_TYPE_NOT_DELETE);
+
+
 
         /// <summary>
         /// 把子类传递过来的所有字段信息合并到一起。
@@ -200,6 +210,7 @@ namespace MySqliteHelper
             List<MyDbField> results = new List<MyDbField>();
             results.Add(FIELD_ID);
             results.Add(FIELD_CHILD_NO);
+            results.Add(FIELD_NEXT_CHILD_NO);
             results.Add(FIELD_DELETE_TYPE);
             results.AddRange(childFields);
             return results;

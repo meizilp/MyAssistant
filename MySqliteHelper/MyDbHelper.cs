@@ -30,7 +30,7 @@ namespace MySqliteHelper
 
         /// <summary>
         /// 获取所有需要在数据库中创建的表信息。
-        /// 需要子类具体实现。
+        /// 因为每个应用的表都不一样，所以需要子类具体实现。
         /// </summary>
         protected abstract MyDbTable[] GetAllTableInfo();
 
