@@ -78,6 +78,7 @@ namespace MyAssistant.db
         {            
         }
 
+        //默认的收集向导根节点ID。
         private const string COLLECT_GUIDE_ROOT_ID = "collect0root0guide0id88888888888";
 
         protected override void ReadFieldValue(string fieldName, SQLiteDataReader reader, int valueIndex)
