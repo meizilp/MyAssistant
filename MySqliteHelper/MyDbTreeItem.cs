@@ -37,6 +37,10 @@ namespace MySqliteHelper
             return result;
         }
 
+        /// <summary>
+        /// 在尾部添加一个新的子节点。
+        /// </summary>
+        /// <param name="newChild"></param>
         public void AppendNewChild(MyDbTreeItem newChild)
         {
             this.next_child_no += MyDbHelper.CHILD_ITEM_SPAN;
@@ -54,6 +58,12 @@ namespace MySqliteHelper
             trans.Commit();
         }
 
+        /// <summary>
+        /// 在两个对象之间添加添加一个新的子节点。
+        /// </summary>
+        /// <param name="newChild"></param>
+        /// <param name="before"></param>
+        /// <param name="after"></param>
         public void InsertNewChildBetween(MyDbTreeItem newChild, MyDbTreeItem before, MyDbTreeItem after)
         {
             if (newChild == null) return;
@@ -85,6 +95,13 @@ namespace MySqliteHelper
             }
         }
 
+        /// <summary>
+        /// 移动一个节点。
+        /// </summary>
+        /// <param name="oriParent"></param>
+        /// <param name="newParent"></param>
+        /// <param name="newBefore"></param>
+        /// <param name="newAfter"></param>
         public void Move(MyDbTreeItem oriParent, MyDbTreeItem newParent, MyDbTreeItem newBefore, MyDbTreeItem newAfter)
         {
             if (!oriParent.id.Equals(newParent.id))
@@ -111,15 +128,15 @@ namespace MySqliteHelper
                 }
             }
             SQLiteTransaction trans = mDb.BeginTransaction();
-            //update oriParent
-            oriParent.UpdateToDB(new SQLiteParameter[] {
-                new SQLiteParameter(FIELD_CHILD_COUNT.name){Value=oriParent.child_count},
-            });
             //update newParent
             newParent.UpdateToDB(new SQLiteParameter[] {
                 new SQLiteParameter(FIELD_CHILD_COUNT.name){Value=newParent.child_count},
                 new SQLiteParameter(FIELD_NEXT_CHILD_NO.name){Value=newParent.next_child_no},
             });
+            if (!oriParent.Equals(newParent))
+            {//update oriParent                
+                oriParent.UpdateToDB(new SQLiteParameter(FIELD_CHILD_COUNT.name){Value=oriParent.child_count});
+            }            
             //update this
             this.UpdateToDB(new SQLiteParameter[] {
                 new SQLiteParameter(FIELD_PARENT.name){Value=this.parent},
