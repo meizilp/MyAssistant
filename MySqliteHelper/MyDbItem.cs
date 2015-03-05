@@ -143,7 +143,21 @@ namespace MySqliteHelper
                 GetMyDbTable().TableName, paramClms.ToString(), FIELD_ID.name);
             cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = this.id });            
             cmd.ExecuteNonQuery();            
-        }    
+        }
+
+        /// <summary>
+        /// 更新一个字段。
+        /// </summary>
+        /// <param name="field"></param>
+        public virtual void UpdateToDB(SQLiteParameter field)
+        {
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);            
+            cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {2}=@{2}",
+                GetMyDbTable().TableName, field.ParameterName, FIELD_ID.name);
+            cmd.Parameters.Add(new SQLiteParameter(field.ParameterName) { Value = field.Value });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = this.id });
+            cmd.ExecuteNonQuery();            
+        }
 
         protected const int DELETE_TYPE_NOT_DELETE = 0;
         protected const int DELETE_TYPE_BY_USER = 1;
