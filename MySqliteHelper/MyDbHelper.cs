@@ -146,10 +146,7 @@ namespace MySqliteHelper
         private void TryUpgradeTable(MyDbTable t)
         {
             HashSet<string> dbColumns = QueryColumnsOfTableInDb(t.TableName);                                    
-            SQLiteCommand addColumnCmd = new SQLiteCommand(mConnection);            
-            //如果列的数量没有变化，那么不用升级。因为sqlite只支持增加列数，不支持删除。
-            if (dbColumns.Count == t.ColumnInfos.Count) return;
-            SQLiteTransaction trans = mConnection.BeginTransaction();
+            SQLiteCommand addColumnCmd = new SQLiteCommand(mConnection);                                                
             foreach (MyDbField clm in t.ColumnInfos)
             {
                 if (!dbColumns.Contains(clm.name))
@@ -158,8 +155,7 @@ namespace MySqliteHelper
                         t.TableName, clm.name, clm.type, clm.constraint);
                     addColumnCmd.ExecuteNonQuery();
                 }
-            }                  
-            trans.Commit();
+            }                              
         }
         
         /// <summary>

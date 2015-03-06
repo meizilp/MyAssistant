@@ -44,16 +44,17 @@ namespace MyAssistant.form
         private void menuNewGuide_Click(object sender, EventArgs e)
         {            
             mNewGuide = new NewGuideWrapper();            
-            if (treeGuides.SelectedObject == null)
-            {//没有选择任何节点，在根节点的最后添加。
+            Guide selectedGuide = treeGuides.SelectedObject as Guide;
+            if (selectedGuide == null || selectedGuide.parent == null)
+            {//没有选择任何节点或选择了根节点，在根节点的子节点列表最后添加。
                 mNewGuide.siblingObject = null;
                 mNewGuide.parentObject = mRoot;
                 mNewGuide.index = mRoot.child_count;
             }
             else 
             {//在选中节点的后面添加
-                mNewGuide.siblingObject = treeGuides.SelectedObject as Guide;
-                mNewGuide.parentObject = treeGuides.GetParent(mNewGuide.siblingObject) as Guide;
+                mNewGuide.siblingObject = selectedGuide;
+                mNewGuide.parentObject = treeGuides.GetParent(selectedGuide) as Guide;
                 List<Guide> children = mNewGuide.parentObject.GetChildGuides();
                 mNewGuide.index = children.IndexOf(mNewGuide.siblingObject) + 1;
                 //如果是最后一个，那么转为尾部添加，可在ConfirmAddDir中减少一次查询子目录列表。
