@@ -124,36 +124,36 @@ namespace MySqliteHelper
         }
 
         //同一个parent，向前移动。
-        private void MoveForward(MyDbTreeItem sibling, bool isBefore)
+        private void MoveForward(MyDbTreeItem parent, MyDbTreeItem sibling, bool isBefore)
         {
             if (isBefore)
             {//f(this)在b(sibling)之后，并且移动到b之前。f-->b之前
                 //那么f从队列移出，从b开始到f之前的元素位置都往后一个，b原来的位置空出来，f放入，完成。
-                UpdateChildrenNo(this, 1, sibling.no, this.no - 1);
+                UpdateChildrenNo(parent, 1, sibling.no, this.no - 1);
                 this.no = sibling.no;
             }
             else
             {//f在b之后，并且移动到b之后。
                 //那么f从队列移出，从b之后一个位置开始到f之前的元素位置都往后一个，b之后一个的位置空出来，f放入，完成。
-                UpdateChildrenNo(this, 1, sibling.no+1, this.no - 1);
+                UpdateChildrenNo(parent, 1, sibling.no+1, this.no - 1);
                 this.no = sibling.no + 1;
             }
             this.UpdateToDB(new SQLiteParameter(FIELD_NO.name) { Value = this.no });
         }
 
         //同一个parent，向后移动。
-        private void MoveBackward(MyDbTreeItem sibling, bool isBefore)
+        private void MoveBackward(MyDbTreeItem parent, MyDbTreeItem sibling, bool isBefore)
         {
             if (isBefore)
             {//b(this)在f(sibling)之前，并且移动到f之前。
                 //那么b从队列移出，b之后到f之前的所有元素位置提前一个，f之前的位置空出来，b放入，完成。
-                UpdateChildrenNo(this, -1, this.no + 1, sibling.no - 1);
+                UpdateChildrenNo(parent, -1, this.no + 1, sibling.no - 1);
                 this.no = sibling.no - 1;
             }
             else
             {//b在f之前，并且移动到f之后。
                 //那么b从队列移出，b之后到f所有元素位置提前一个，f原来的位置空出来，b放入，完成。
-                UpdateChildrenNo(this, -1, this.no + 1, sibling.no);
+                UpdateChildrenNo(parent, -1, this.no + 1, sibling.no);
                 this.no = sibling.no;
             }
             this.UpdateToDB(new SQLiteParameter(FIELD_NO.name) { Value = this.no });
@@ -238,16 +238,16 @@ namespace MySqliteHelper
                     if (sibling != null && this.no == sibling.no + 1) return;
                 }
                 //只是改变位置
-                SQLiteTransaction trans = mDb.BeginTransaction();
+                //SQLiteTransaction trans = mDb.BeginTransaction();
                 if (this.no < sibling.no)
                 {//向后移动。比如B-》F
-                    MoveBackward(sibling, isBefore);
+                    MoveBackward(oriParent, sibling, isBefore);
                 }
                 else
                 {//向前移动。比如F-》B
-                    MoveForward(sibling, isBefore);
+                    MoveForward(oriParent, sibling, isBefore);
                 }
-                trans.Commit();
+               // trans.Commit();
             }
             else
             {//跨父节点移动                
