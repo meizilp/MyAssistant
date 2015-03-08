@@ -98,13 +98,7 @@ namespace MySqliteHelper
                     break;
                 case NAME_OF_FIELD_DELETE_TYPE:
                     this.delete_type = reader.GetInt32(valueIndex);
-                    break;
-                case NAME_OF_FIELD_CHILD_NO:
-                    this.child_no = reader.GetInt64(valueIndex);
-                    break;
-                case NAME_OF_FIELD_NEXT_CHILD_NO:
-                    this.next_child_no = reader.GetInt64(valueIndex);
-                    break;
+                    break;                
             }            
         }
 
@@ -171,7 +165,7 @@ namespace MySqliteHelper
         public virtual void DeleteFromDB(int type = 1)
         {
             delete_type = type;
-            UpdateToDB(new SQLiteParameter[] { new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = type } });            
+            UpdateToDB(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = type });            
         }
         
         /// <summary>
@@ -192,18 +186,7 @@ namespace MySqliteHelper
         /// </summary>                
         public string id { get; set; }
         private const string NAME_OF_FIELD_ID = "id";
-        public static MyDbField FIELD_ID = new MyDbField(NAME_OF_FIELD_ID, MyDbField.TYPE_TEXT, MyDbField.CONSTRAINT_PRIMARY_KEY);
-
-        /// <summary>
-        /// 用来排序的序号。
-        /// </summary>
-        public long child_no { get; set; }
-        private const string NAME_OF_FIELD_CHILD_NO = "child_no";
-        public static MyDbField FIELD_CHILD_NO = new MyDbField(NAME_OF_FIELD_CHILD_NO, MyDbField.TYPE_INTEGER, "DEFAULT 0");
-
-        public long next_child_no { get; set; }
-        private const string NAME_OF_FIELD_NEXT_CHILD_NO = "next_child_no";
-        public static MyDbField FIELD_NEXT_CHILD_NO = new MyDbField(NAME_OF_FIELD_NEXT_CHILD_NO, MyDbField.TYPE_INTEGER, "DEFAULT 0");
+        public static MyDbField FIELD_ID = new MyDbField(NAME_OF_FIELD_ID, MyDbField.TYPE_TEXT, MyDbField.CONSTRAINT_PRIMARY_KEY);        
                  
         /// <summary>
         /// 标记此对象是否已经被删除。0,1,2。
@@ -211,8 +194,6 @@ namespace MySqliteHelper
         protected int delete_type { get; set; }
         private const string NAME_OF_FIELD_DELETE_TYPE = "delete_type";
         public static MyDbField FIELD_DELETE_TYPE = new MyDbField(NAME_OF_FIELD_DELETE_TYPE, MyDbField.TYPE_INTEGER, "DEFAULT " + DELETE_TYPE_NOT_DELETE);
-
-
 
         /// <summary>
         /// 把子类传递过来的所有字段信息合并到一起。
@@ -222,9 +203,7 @@ namespace MySqliteHelper
         protected static List<MyDbField> CalFields(List<MyDbField> childFields)
         {
             List<MyDbField> results = new List<MyDbField>();
-            results.Add(FIELD_ID);
-            results.Add(FIELD_CHILD_NO);
-            results.Add(FIELD_NEXT_CHILD_NO);
+            results.Add(FIELD_ID);            
             results.Add(FIELD_DELETE_TYPE);
             results.AddRange(childFields);
             return results;
@@ -258,8 +237,6 @@ namespace MySqliteHelper
         {
             if (initId == null) this.id = Guid.NewGuid().ToString("N");
             else this.id = initId;
-        }
-
-        public const long CHILD_ITEM_SPAN = 1048576L;
+        }        
     }
 }

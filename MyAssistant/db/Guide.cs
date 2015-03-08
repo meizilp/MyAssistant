@@ -66,7 +66,7 @@ namespace MyAssistant.db
             return new SQLiteParameter[] { 
                 new SQLiteParameter(FIELD_ID.name){Value = id},
                 new SQLiteParameter(FIELD_PARENT.name){Value = parent},
-                new SQLiteParameter(FIELD_CHILD_NO.name){Value = child_no},
+                new SQLiteParameter(FIELD_NO.name){Value = no},
                 new SQLiteParameter(FIELD_TEXT.name){Value = text},
                 new SQLiteParameter(FIELD_TYPE.name){Value = type},
                 new SQLiteParameter(FIELD_ID_DIR.name){Value = id_dir}, 

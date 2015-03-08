@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-
+using System.Text;
 using System.Data.SQLite;
 
 namespace MySqliteHelper
@@ -13,10 +13,10 @@ namespace MySqliteHelper
         /// </summary>
         /// <returns></returns>
         protected SQLiteDataReader GetChildren()
-        {//select * from table where parent = this.id and delete_type = 0 order by child_no
+        {//select * from table where parent = this.id and delete_type = 0 order by no
             SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
             cmd.CommandText = String.Format("SELECT * FROM {0} WHERE {1}=@{1} AND {2}=@{2} ORDER BY {3}",
-                GetMyDbTable().TableName, FIELD_PARENT.name, FIELD_DELETE_TYPE.name, FIELD_CHILD_NO.name);
+                GetMyDbTable().TableName, FIELD_PARENT.name, FIELD_DELETE_TYPE.name, FIELD_NO.name);
             cmd.Parameters.Add(new SQLiteParameter(FIELD_PARENT.name) { Value = this.id });
             cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_NOT_DELETE });
             return cmd.ExecuteReader();            
@@ -49,113 +49,209 @@ namespace MySqliteHelper
         /// <param name="newChild">要添加的新节点，必须是新建的对象，未在数据库中存储过。</param>
         public void AppendNewChild(MyDbTreeItem newChild)
         {
-            if (newChild == null || newChild.delete_type != DELETE_TYPE_NOT_DELETE) return;
-            this.next_child_no += CHILD_ITEM_SPAN;
-            this.child_count += 1;
+            if (newChild == null || newChild.delete_type != DELETE_TYPE_NOT_DELETE) return;                       
             newChild.parent = this.id;
-            newChild.child_no = this.next_child_no;
+            newChild.no = this.child_count;            
             newChild.id_dir = this.GetFullIdPath();
+            this.child_count += 1;
             //保存
             SQLiteTransaction trans = mDb.BeginTransaction();
             newChild.InsertToDB();
-            this.UpdateToDB(new SQLiteParameter[] { 
-                new SQLiteParameter(FIELD_NEXT_CHILD_NO.name){Value = this.next_child_no},
-                new SQLiteParameter(FIELD_CHILD_COUNT.name){Value = this.child_count},
-            });
+            this.UpdateToDB(new SQLiteParameter(FIELD_CHILD_COUNT.name){Value = this.child_count});
             trans.Commit();
         }
 
+        //UPDATE table_name SET no=no+delta where parent=parent.id and deleted=0 and no>=start_no
+        private static void UpdateChildrenNo(MyDbTreeItem parent,int delta, int start_no, int end_no)
+        {
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
+            StringBuilder cmdText = new StringBuilder();
+            cmdText.Append(String.Format("UPDATE {0} SET {1}={1}{2} WHERE {3}=@{3} AND {4}=@{4} AND {1}>=@{5}",
+                parent.GetMyDbTable().TableName, 
+                FIELD_NO.name, delta>0 ? "+"+delta.ToString() : delta.ToString(), 
+                FIELD_PARENT.name, 
+                FIELD_DELETE_TYPE.name, 
+                "start_no"));
+            if (end_no >= 0)
+            {//如果有截止no，那么就只修改指定的范围内的记录。
+                cmdText.Append(String.Format(" AND {0}<=@{1}", FIELD_NO.name, "end_no"));
+                cmd.Parameters.Add(new SQLiteParameter("end_no") { Value = end_no });
+            }
+            cmd.CommandText = cmdText.ToString();
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_PARENT.name) { Value = parent.id });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_NOT_DELETE });
+            cmd.Parameters.Add(new SQLiteParameter("start_no") { Value = start_no });
+            cmd.ExecuteNonQuery();     
+        }
+
         /// <summary>
-        /// 在两个对象之间添加添加一个新的子节点。
+        /// 插入一个新的子节点。
+        /// 插入之后所有的直接点都应从数据库重新加载。
         /// </summary>
         /// <param name="newChild">要插入的新对象，必须是新建的对象。</param>
         /// <param name="before"></param>
         /// <param name="after"></param>
-        public void InsertNewChildBetween(MyDbTreeItem newChild, MyDbTreeItem before, MyDbTreeItem after)
+        public void InsertNewChild(MyDbTreeItem newChild, MyDbTreeItem sibling, bool isBefore)
         {
             if (newChild == null || newChild.delete_type != DELETE_TYPE_NOT_DELETE) return;
-            if (after == null)
-            {//后面没有子节点
+            if (sibling == null)
+            {//在尾部添加
                 AppendNewChild(newChild);
                 return;
             }
             else
             {
-                this.child_count += 1;
                 newChild.parent = this.id;
                 newChild.id_dir = this.GetFullIdPath();
-                if (before == null)
-                {//在首部添加
-                    newChild.child_no = after.child_no / 2;
+                SQLiteTransaction trans = mDb.BeginTransaction();
+                if (isBefore)
+                {//所有sibling之后以及sibling本身的no+1，腾出位置来。
+                 //UPDATE table_name SET no=no+1 where parent=this.id and deleted=0 and no>=sibling.no
+                    UpdateChildrenNo(this, 1, sibling.no, -1);
+                    newChild.no = sibling.no;                    
                 }
                 else
-                {//在两个对象之间添加
-                    newChild.child_no = (before.child_no + after.child_no) / 2;
+                {//所有sibling之后记录的no+1，腾出位置来。
+                 //UPDATE table_name SET no=no+1 where parent=this.id and deleted=0 and no>=sibling.no+1
+                    UpdateChildrenNo(this, 1, sibling.no+1, -1);
+                    newChild.no = sibling.no + 1;
                 }
-                //保存
-                SQLiteTransaction trans = mDb.BeginTransaction();
+                this.child_count += 1;                                                
                 newChild.InsertToDB();
-                this.UpdateToDB(new SQLiteParameter[] {                 
-                    new SQLiteParameter(FIELD_CHILD_COUNT.name){Value = this.child_count},
-                });
+                this.UpdateToDB(new SQLiteParameter(FIELD_CHILD_COUNT.name){Value = this.child_count});
                 trans.Commit();
             }
         }
 
-        /// <summary>
-        /// 移动一个节点。
-        /// </summary>
-        /// <param name="oriParent"></param>
-        /// <param name="newParent"></param>
-        /// <param name="newBefore"></param>
-        /// <param name="newAfter"></param>
-        public void Move(MyDbTreeItem oriParent, MyDbTreeItem newParent, MyDbTreeItem newBefore, MyDbTreeItem newAfter)
+        //同一个parent，向前移动。
+        private void MoveForward(MyDbTreeItem sibling, bool isBefore)
         {
-            if (!oriParent.id.Equals(newParent.id))
-            {//跨父节点移动
-                oriParent.child_count -= 1;
-                newParent.child_count += 1;
-                this.parent = newParent.id;
-                this.id_dir = newParent.GetFullIdPath();
+            if (isBefore)
+            {//f(this)在b(sibling)之后，并且移动到b之前。f-->b之前
+                //那么f从队列移出，从b开始到f之前的元素位置都往后一个，b原来的位置空出来，f放入，完成。
+                UpdateChildrenNo(this, 1, sibling.no, this.no - 1);
+                this.no = sibling.no;
             }
-            if (newAfter == null)
-            {//后面没有节点则在尾部追加。
-                newParent.next_child_no += CHILD_ITEM_SPAN;
-                this.child_no = newParent.next_child_no;                
+            else
+            {//f在b之后，并且移动到b之后。
+                //那么f从队列移出，从b之后一个位置开始到f之前的元素位置都往后一个，b之后一个的位置空出来，f放入，完成。
+                UpdateChildrenNo(this, 1, sibling.no+1, this.no - 1);
+                this.no = sibling.no + 1;
+            }
+            this.UpdateToDB(new SQLiteParameter(FIELD_NO.name) { Value = this.no });
+        }
+
+        //同一个parent，向后移动。
+        private void MoveBackward(MyDbTreeItem sibling, bool isBefore)
+        {
+            if (isBefore)
+            {//b(this)在f(sibling)之前，并且移动到f之前。
+                //那么b从队列移出，b之后到f之前的所有元素位置提前一个，f之前的位置空出来，b放入，完成。
+                UpdateChildrenNo(this, -1, this.no + 1, sibling.no - 1);
+                this.no = sibling.no - 1;
+            }
+            else
+            {//b在f之前，并且移动到f之后。
+                //那么b从队列移出，b之后到f所有元素位置提前一个，f原来的位置空出来，b放入，完成。
+                UpdateChildrenNo(this, -1, this.no + 1, sibling.no);
+                this.no = sibling.no;
+            }
+            this.UpdateToDB(new SQLiteParameter(FIELD_NO.name) { Value = this.no });
+        }
+
+        //向上移动一个位置。前一个的no+1，自己的no-1
+        public void MoveUp()
+        {
+            if (no == 0) return;
+        }
+
+        //向下移动一个位置。后一个的no-1，自己的no+1
+        public void MoveDown()
+        {
+
+        }
+
+        //解除和一个child的关系。子节点数-1；所有此节点后的no-1
+        private void DetachChild(MyDbTreeItem child)
+        {
+            this.child_count -= 1;
+            UpdateChildrenNo(this, -1, child.no+1, -1);
+            this.UpdateToDB(new SQLiteParameter(FIELD_CHILD_COUNT.name) { Value = this.child_count });
+        }
+
+        //和一个child建立关系。子节点数+1；所有此节点后的no+1
+        private void AttachChild(MyDbTreeItem child, MyDbTreeItem sibling, bool isBefore)
+        {            
+            child.parent = this.id;
+            child.id_dir = this.GetFullIdPath();
+            if (sibling == null)
+            {//在尾部追加
+                child.no = this.child_count;
             }
             else
             {
-                if (newBefore == null)
-                {//前面没有节点，那么序号等于后节点的一半。
-                    this.child_no = newAfter.child_no / 2;
+                if (isBefore)
+                {//抢占sibling的位置
+                    UpdateChildrenNo(this, 1, sibling.no, -1);
+                    child.no = sibling.no;
                 }
                 else
-                {//前后都有节点，那么序号取中值。
-                    this.child_no = (newBefore.child_no + newAfter.child_no) / 2;
+                {//抢占sibling后一个位置
+                    UpdateChildrenNo(this, 1, sibling.no + 1, -1);
+                    child.no = sibling.no + 1;
                 }
             }
-            SQLiteTransaction trans = mDb.BeginTransaction();
-            //update newParent
-            newParent.UpdateToDB(new SQLiteParameter[] {
-                new SQLiteParameter(FIELD_CHILD_COUNT.name){Value=newParent.child_count},
-                new SQLiteParameter(FIELD_NEXT_CHILD_NO.name){Value=newParent.next_child_no},
+            this.child_count += 1;
+            this.UpdateToDB(new SQLiteParameter(FIELD_CHILD_COUNT.name) { Value = this.child_count });
+            child.UpdateToDB(new SQLiteParameter[] {
+                new SQLiteParameter(FIELD_PARENT.name) { Value = child.parent},
+                new SQLiteParameter(FIELD_ID_DIR.name) { Value = child.id_dir},
+                new SQLiteParameter(FIELD_NO.name) { Value = child.no},
             });
-            if (!oriParent.Equals(newParent))
-            {//update oriParent                
-                oriParent.UpdateToDB(new SQLiteParameter(FIELD_CHILD_COUNT.name){Value=oriParent.child_count});
+        }
+        
+        /// <summary>
+        /// 移动一个节点。
+        /// 移动操作完成后所有相关节点应重新载入。
+        /// 如果sibling为null，那么就是加入到新parent的尾部。
+        /// </summary>        
+        public void Move(MyDbTreeItem oriParent, MyDbTreeItem newParent, MyDbTreeItem sibling, bool isBefore)
+        {                        
+            if (oriParent.Equals(newParent))
+            {//同父节点移动
+                if (isBefore)
+                {//如果本来就在sibling的前一个则不需要处理。
+                    if (sibling != null && this.no == sibling.no - 1) return;
+                }
+                else
+                {//如果本来就在sibling的后一个则不需要处理。
+                    if (sibling != null && this.no == sibling.no + 1) return;
+                }
+                //只是改变位置
+                SQLiteTransaction trans = mDb.BeginTransaction();
+                if (this.no < sibling.no)
+                {//向后移动。比如B-》F
+                    MoveBackward(sibling, isBefore);
+                }
+                else
+                {//向前移动。比如F-》B
+                    MoveForward(sibling, isBefore);
+                }
+                trans.Commit();
+            }
+            else
+            {//跨父节点移动                
+                SQLiteTransaction trans = mDb.BeginTransaction();
+                oriParent.DetachChild(this);
+                newParent.AttachChild(this, sibling, isBefore);
+                trans.Commit();
             }            
-            //update this
-            this.UpdateToDB(new SQLiteParameter[] {
-                new SQLiteParameter(FIELD_PARENT.name){Value=this.parent},
-                new SQLiteParameter(FIELD_ID_DIR.name){Value=this.id_dir},
-                new SQLiteParameter(FIELD_CHILD_NO.name){Value=this.child_no},
-            });
-            trans.Commit();
         }
 
         /// <summary>
         /// 删除一个子节点。        
         /// 操作完成后父节点的子节点介绍一个；子节点本身被标记删除；子节点的子节点们也被标记删除。
+        /// 所有其后的兄弟节点索引值减1. UPDATE table_name SET no=no-1 where parent=this.id and deleted=0 and no>this.no
         /// </summary>
         /// <param name="child"></param>
         public virtual void DeleteChild(MyDbTreeItem child)
@@ -164,9 +260,7 @@ namespace MySqliteHelper
             this.child_count -= 1;            
             SQLiteTransaction trans = mDb.BeginTransaction();
             //update parent
-            this.UpdateToDB(new SQLiteParameter[] {                 
-                    new SQLiteParameter(FIELD_CHILD_COUNT.name){Value = this.child_count},
-            });
+            this.UpdateToDB(new SQLiteParameter(FIELD_CHILD_COUNT.name){Value = this.child_count});
             //update child
             child.DeleteFromDB(DELETE_TYPE_BY_USER);            
             //update descendants of child
@@ -180,6 +274,8 @@ namespace MySqliteHelper
                 cmd.Parameters.Add(new SQLiteParameter(FIELD_ID_DIR.name) { Value = child.GetFullIdPath() + "%" });
                 cmd.ExecuteNonQuery();
             }
+            //update sibling
+            UpdateChildrenNo(this, -1, this.no, -1);
             trans.Commit();
         }
         
@@ -199,26 +295,34 @@ namespace MySqliteHelper
 
         protected MyDbTreeItem(string initId) : base(initId) { }
 
+        //父节点
         public string parent { get; set; }
         private const string NAME_OF_FIELD_PARENT = "parent";
         public static MyDbField FIELD_PARENT = new MyDbField(NAME_OF_FIELD_PARENT, MyDbField.TYPE_TEXT, null);
 
+        //id路径
         public string id_dir { get; set; }
         private const string NAME_OF_FIELD_ID_DIR = "id_dir";
         public static MyDbField FIELD_ID_DIR = new MyDbField(NAME_OF_FIELD_ID_DIR, MyDbField.TYPE_TEXT, null);
 
+        //本节点在所有兄弟节点中的索引
+        public int no { get; set; }
+        private const string NAME_OF_FIELD_NO = "no";
+        public static MyDbField FIELD_NO = new MyDbField(NAME_OF_FIELD_NO, MyDbField.TYPE_INTEGER, "DEFAULT 0");
+        
+        //子节点数量
         public int child_count { get; set; }
         private const string NAME_OF_FIELD_CHILD_COUNT = "child_count";
         public static MyDbField FIELD_CHILD_COUNT = new MyDbField(NAME_OF_FIELD_CHILD_COUNT, MyDbField.TYPE_INTEGER, "DEFAULT 0");
-        
-        
+                
         //直接继承的子类会调用此函数，把子类的字段信息传递过来合并到一起。
         protected new static List<MyDbField> CalFields(List<MyDbField> childFields)
         {
             List<MyDbField> myFields = new List<MyDbField>();
             myFields.Add(FIELD_PARENT);
-            myFields.Add(FIELD_ID_DIR);            
-            myFields.Add(FIELD_CHILD_COUNT);                        
+            myFields.Add(FIELD_ID_DIR);
+            myFields.Add(FIELD_NO);
+            myFields.Add(FIELD_CHILD_COUNT);                   
             myFields.AddRange(childFields);
             return MyDbItem.CalFields(myFields);
         }
@@ -242,6 +346,9 @@ namespace MySqliteHelper
                     break;
                 case NAME_OF_FIELD_ID_DIR:
                     this.id_dir = reader.GetString(valueIndex);
+                    break;
+                case NAME_OF_FIELD_NO:
+                    this.no = reader.GetInt32(valueIndex);
                     break;
                 default:
                     base.ReadFieldValue(fieldName, reader, valueIndex);
