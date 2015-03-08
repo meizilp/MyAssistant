@@ -182,8 +182,18 @@ namespace MySqliteHelper
         //和一个child建立关系。子节点数+1；所有此节点后的no+1
         private void AttachChild(MyDbTreeItem child, MyDbTreeItem sibling, bool isBefore)
         {            
-            child.parent = this.id;
+            child.parent = this.id;                        
+            //update descendants of child
+            if (child.child_count != 0)
+            {//Update guide SET id_dir=replace(old_id_dir,child_path,new_child_path) where id_dir like child.id_dir + "-" + child.id%
+                SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
+                cmd.CommandText = String.Format("UPDATE {0} SET {1}=replace({1}, '{2}', '{3}') WHERE {1} LIKE @{1}",
+                    GetMyDbTable().TableName, FIELD_ID_DIR.name, child.GetFullIdPath(), this.GetFullIdPath()+"-"+child.id);                
+                cmd.Parameters.Add(new SQLiteParameter(FIELD_ID_DIR.name) { Value = child.GetFullIdPath() + "%" });
+                cmd.ExecuteNonQuery();
+            }
             child.id_dir = this.GetFullIdPath();
+
             if (sibling == null)
             {//在尾部追加
                 child.no = this.child_count;
