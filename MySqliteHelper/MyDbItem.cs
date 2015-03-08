@@ -18,6 +18,7 @@ namespace MySqliteHelper
         /// 当前被打开的数据库实例。
         /// </summary>
         public static MyDbHelper mDb;
+
         /// <summary>
         /// 两个对象的id只要一样就认为是同样的对象。
         /// </summary>
@@ -39,13 +40,22 @@ namespace MySqliteHelper
             if (id == null) return base.GetHashCode();
             return id.GetHashCode();
         }
-                                        
+
+        /// <summary>
+        /// 获取插入对象时需要的参数，用来配合InsertToDB()。
+        /// 插入对象时的字段不像Update变化那么大，所以可以提供一个公用函数，以简化子类实现。
+        /// </summary>
+        /// <returns></returns>
+        protected abstract SQLiteParameter[] GetParamsOfInsertToDB();
+                       
         /// <summary>
         /// 把一个对象插入到数据库。Create。
+        /// 会通过抽象函数获得对象真正要插入数据库的字段。
         /// INSERT INTO table_name (c1,c2,c3) VALUES({@c1,@c2,@c3})
         /// </summary>
-        public virtual void InsertToDB(SQLiteParameter[] fields)
+        public virtual void InsertToDB()
         {
+            SQLiteParameter[] fields = GetParamsOfInsertToDB();
             SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
             StringBuilder sname = new StringBuilder();
             StringBuilder svar = new StringBuilder();
@@ -67,28 +77,29 @@ namespace MySqliteHelper
         }
 
         /// <summary>
-        /// 实现从读取某个字段的值。类似于：
+        /// 实现从读取指定字段的值。类似于：
         /// switch (fieldName) 
         /// {
         ///     case FIELD1:
         ///         field1_var = reader.GetXXX(valueIndex);
         ///         break;
         /// }
-        /// 子类必须要实现自己所声明的字段。
+        /// 每个类必须要实现读取自己所声明的字段。
         /// </summary>
         /// <param name="fieldName"></param>
         /// <param name="reader"></param>
         /// <param name="valueIndex"></param>
         protected virtual void ReadFieldValue(string fieldName, SQLiteDataReader reader, int valueIndex)
-        {
-            if (fieldName.Equals(NAME_OF_FIELD_ID))
+        {            
+            switch(fieldName) 
             {
-                this.id = reader.GetString(valueIndex);
-            }
-            else if (fieldName.Equals(NAME_OF_FIELD_DELETE_TYPE))
-            {
-                this.delete_type = reader.GetInt32(valueIndex);
-            }
+                case NAME_OF_FIELD_ID:
+                    this.id = reader.GetString(valueIndex);
+                    break;
+                case NAME_OF_FIELD_DELETE_TYPE:
+                    this.delete_type = reader.GetInt32(valueIndex);
+                    break;                
+            }            
         }
 
         /// <summary>
@@ -104,6 +115,15 @@ namespace MySqliteHelper
                 if(!reader.IsDBNull(i)) item.ReadFieldValue(reader.GetName(i), reader, i);
             }
             return item;
+        }
+
+        //Select * from table where id = id;
+        protected static SQLiteDataReader QueryById(string id, string table)
+        {
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);            
+            cmd.CommandText = String.Format("SELECT * from {0} WHERE {1}=@{1}", table, FIELD_ID.name);
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = id });
+            return cmd.ExecuteReader();
         }
 
         /// <summary>
@@ -126,7 +146,21 @@ namespace MySqliteHelper
                 GetMyDbTable().TableName, paramClms.ToString(), FIELD_ID.name);
             cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = this.id });            
             cmd.ExecuteNonQuery();            
-        }    
+        }
+
+        /// <summary>
+        /// 更新一个字段。
+        /// </summary>
+        /// <param name="field"></param>
+        public virtual void UpdateToDB(SQLiteParameter field)
+        {
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);            
+            cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {2}=@{2}",
+                GetMyDbTable().TableName, field.ParameterName, FIELD_ID.name);
+            cmd.Parameters.Add(new SQLiteParameter(field.ParameterName) { Value = field.Value });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = this.id });
+            cmd.ExecuteNonQuery();            
+        }
 
         protected const int DELETE_TYPE_NOT_DELETE = 0;
         protected const int DELETE_TYPE_BY_USER = 1;
@@ -139,12 +173,17 @@ namespace MySqliteHelper
         /// </summary>
         public virtual void DeleteFromDB(int type = 1)
         {
-            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
-            cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {2}=@{2}", 
-                GetMyDbTable().TableName, FIELD_DELETE_TYPE.name, FIELD_ID.name);
-            cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = type });
-            cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = this.id });
-            cmd.ExecuteNonQuery();            
+            delete_type = type;
+            UpdateToDB(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = type });            
+        }
+
+        /// <summary>
+        /// 修改删除标记，恢复成未删除。
+        /// </summary>
+        protected virtual void Recovery()
+        {
+            delete_type = DELETE_TYPE_NOT_DELETE;
+            UpdateToDB(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = delete_type });            
         }
         
         /// <summary>
@@ -165,14 +204,38 @@ namespace MySqliteHelper
         /// </summary>                
         public string id { get; set; }
         private const string NAME_OF_FIELD_ID = "id";
-        public static MyDbField FIELD_ID = new MyDbField(NAME_OF_FIELD_ID, MyDbField.TYPE_TEXT, MyDbField.CONSTRAINT_PRIMARY_KEY);                                    
-
+        public static MyDbField FIELD_ID = new MyDbField(NAME_OF_FIELD_ID, MyDbField.TYPE_TEXT, MyDbField.CONSTRAINT_PRIMARY_KEY);        
+                 
         /// <summary>
         /// 标记此对象是否已经被删除。0,1,2。
         /// </summary>        
         protected int delete_type { get; set; }
         private const string NAME_OF_FIELD_DELETE_TYPE = "delete_type";
-        public static MyDbField FIELD_DELETE_TYPE = new MyDbField(NAME_OF_FIELD_DELETE_TYPE, MyDbField.TYPE_INTEGER, "DEFAULT " + DELETE_TYPE_NOT_DELETE);        
+        public static MyDbField FIELD_DELETE_TYPE = new MyDbField(NAME_OF_FIELD_DELETE_TYPE, MyDbField.TYPE_INTEGER, "DEFAULT " + DELETE_TYPE_NOT_DELETE);
+
+        /// <summary>
+        /// 把子类传递过来的所有字段信息合并到一起。
+        /// </summary>
+        /// <param name="childFields"></param>
+        /// <returns></returns>
+        protected static List<MyDbField> CalFields(List<MyDbField> childFields)
+        {
+            List<MyDbField> results = new List<MyDbField>();
+            results.Add(FIELD_ID);            
+            results.Add(FIELD_DELETE_TYPE);
+            results.AddRange(childFields);
+            return results;
+        }
+
+        /// <summary>
+        /// 把子类传递过来的索引信息合并到一起。
+        /// </summary>
+        /// <param name="childIndexes"></param>
+        /// <returns></returns>
+        protected static List<MyDbIndex> CalIndexes(List<MyDbIndex> childIndexes)
+        {
+            return childIndexes;
+        }
 
         /// <summary>
         /// 获取本类对象的数据库表信息。
@@ -192,6 +255,6 @@ namespace MySqliteHelper
         {
             if (initId == null) this.id = Guid.NewGuid().ToString("N");
             else this.id = initId;
-        }
+        }        
     }
 }

@@ -30,7 +30,7 @@ namespace MySqliteHelper
 
         /// <summary>
         /// 获取所有需要在数据库中创建的表信息。
-        /// 需要子类具体实现。
+        /// 因为每个应用的表都不一样，所以需要子类具体实现。
         /// </summary>
         protected abstract MyDbTable[] GetAllTableInfo();
 
@@ -73,7 +73,7 @@ namespace MySqliteHelper
                     if (dbTables.Contains(t.TableName)) TryUpgradeTable(t);
                     else CreateTable(t);                    
                     //依次检测本表要创建的索引，不存在则创建索引                    
-                    for (int i = 0; i < t.IndexInfos.Length; ++i)
+                    for (int i = 0; i < t.IndexInfos.Count; ++i)
                     {
                         if (!dbIndexes.Contains(t.IndexInfos[i].name))
                         {//索引表在库中尚不存在则创建
@@ -146,10 +146,7 @@ namespace MySqliteHelper
         private void TryUpgradeTable(MyDbTable t)
         {
             HashSet<string> dbColumns = QueryColumnsOfTableInDb(t.TableName);                                    
-            SQLiteCommand addColumnCmd = new SQLiteCommand(mConnection);            
-            //如果列的数量没有变化，那么不用升级。因为sqlite只支持增加列数，不支持删除。
-            if (dbColumns.Count == t.ColumnInfos.Length) return;
-            SQLiteTransaction trans = mConnection.BeginTransaction();
+            SQLiteCommand addColumnCmd = new SQLiteCommand(mConnection);                                                
             foreach (MyDbField clm in t.ColumnInfos)
             {
                 if (!dbColumns.Contains(clm.name))
@@ -158,8 +155,7 @@ namespace MySqliteHelper
                         t.TableName, clm.name, clm.type, clm.constraint);
                     addColumnCmd.ExecuteNonQuery();
                 }
-            }                  
-            trans.Commit();
+            }                              
         }
         
         /// <summary>
@@ -191,6 +187,6 @@ namespace MySqliteHelper
         public SQLiteTransaction BeginTransaction()
         {
             return mConnection.BeginTransaction();
-        }                        
+        }        
     }
 }

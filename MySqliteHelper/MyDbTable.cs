@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Collections.Generic;
 
 namespace MySqliteHelper
 {    
@@ -16,61 +17,41 @@ namespace MySqliteHelper
             get { return _tableName; }
         }
 
-        private MyDbField[] _columnInfos;
+        private List<MyDbField> _columnInfos;
         /// <summary>
         /// 表的列信息。                
         /// </summary>
-        public MyDbField[] ColumnInfos
+        public List<MyDbField> ColumnInfos
         {
             get { return _columnInfos; }
         }
 
-        private MyDbIndex[] _indexInfos;
+        private List<MyDbIndex> _indexInfos;
         /// <summary>
         /// 在此表上创建的索引的信息。
         /// </summary>
-        public MyDbIndex[] IndexInfos
+        public List<MyDbIndex> IndexInfos
         {
             get { return _indexInfos; }
         }
 
         /// <summary>
-        /// 表信息。
+        /// 构造一个表信息项。
         /// </summary>
-        /// <param name="tableName"></param>
-        /// <param name="columnInfos"></param>
-        /// <param name="indexInfos"></param>
-        public MyDbTable(string tableName, MyDbField[] columnInfos, MyDbIndex[] indexInfos)
+        /// <param name="tableName">表名</param>
+        /// <param name="columnInfos">列信息</param>
+        /// <param name="indexInfos">索引信息</param>
+        public MyDbTable(string tableName, List<MyDbField> columnInfos, List<MyDbIndex> indexInfos)
         {
             _tableName = tableName;
             _columnInfos = columnInfos;
             _indexInfos = indexInfos;
-        }
-
-        private string mJoinedColumns = null;
-        /// <summary>
-        /// 把列的名称串起来。类似于 C1,C2,C3
-        /// </summary>
-        /// <returns></returns>
-        public string JoinColumns()
-        {
-            if (mJoinedColumns != null) return mJoinedColumns;
-            StringBuilder sname = new StringBuilder();                        
-            bool isFirst = true;
-            foreach (MyDbField f in ColumnInfos) 
-            {
-                if (isFirst) isFirst = false;
-                else
-                {
-                    sname.Append(", ");
-                }
-                sname.Append(f.name);                
-            }            
-            mJoinedColumns = sname.ToString();
-            return mJoinedColumns;
-        }        
+        }                
     }    
 
+    /// <summary>
+    /// 字段信息对象。
+    /// </summary>
     public sealed class MyDbField
     {
         //内置类型
@@ -122,6 +103,9 @@ namespace MySqliteHelper
         }
     }
 
+    /// <summary>
+    /// 索引信息。
+    /// </summary>
     public sealed class MyDbIndex
     {
         private string _name;

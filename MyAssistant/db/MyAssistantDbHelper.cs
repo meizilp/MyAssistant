@@ -16,6 +16,7 @@ namespace MyAssistant.db
 
         }
 
+        //新增的类型都放到这个数组。
         private static MyDbTable[] mAllTables = {
                                                 Guide.mTable
                                                 };
@@ -23,8 +24,6 @@ namespace MyAssistant.db
         protected override MyDbTable[] GetAllTableInfo()
         {
             return mAllTables;
-        }
-
-        public const long CHILD_ITEM_SPAN = 524288L;
+        }        
     }
 }

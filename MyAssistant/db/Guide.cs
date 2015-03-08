@@ -10,7 +10,15 @@ namespace MyAssistant.db
     internal class Guide : MyDbTreeItem
     {
 
+        //收集向导
         public const int GUIDE_TYPE_COLLECT = 0;
+        //处理向导
+
+        /// <summary>
+        /// 获取指定类型的Guide的根节点。
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public static Guide GetRootGuide(int type)
         {
             SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
@@ -33,6 +41,23 @@ namespace MyAssistant.db
             }
         }
 
+        public static Guide QueryById(string id)
+        {
+            SQLiteDataReader reader = QueryById(id, mTable.TableName);
+            Guide result = null;
+            if (reader.Read())
+            {
+                result = new Guide("");
+                ReadObjectFromDB(result, reader);
+            }
+            reader.Close();
+            return result;
+        }
+
+        /// <summary>
+        /// 获取本对象所有的直接子对象。
+        /// </summary>
+        /// <returns></returns>
         public List<Guide> GetChildGuides()
         {
             SQLiteDataReader reader = GetChildren();
@@ -46,95 +71,22 @@ namespace MyAssistant.db
             } while (reader.NextResult());
             reader.Close();
             return results;
-        }       
+        }
 
-        private void InsertToDB()
+        //插入一个新Guide对象所需要填充的字段。
+        protected override SQLiteParameter[] GetParamsOfInsertToDB()
         {
-            InsertToDB(new SQLiteParameter[] { 
+            return new SQLiteParameter[] { 
                 new SQLiteParameter(FIELD_ID.name){Value = id},
                 new SQLiteParameter(FIELD_PARENT.name){Value = parent},
-                new SQLiteParameter(FIELD_CHILD_NO.name){Value = child_no},
+                new SQLiteParameter(FIELD_NO.name){Value = no},
                 new SQLiteParameter(FIELD_TEXT.name){Value = text},
                 new SQLiteParameter(FIELD_TYPE.name){Value = type},
-                new SQLiteParameter(FIELD_ID_DIR.name){Value = id_dir},
-            });
-        }
-
-        public void AppendNewChild(Guide newChild)
-        {            
-            this.next_child_no += MyAssistantDbHelper.CHILD_ITEM_SPAN;
-            this.child_guide_num += 1;
-            newChild.parent = this.id;
-            newChild.child_no = this.next_child_no;
-            newChild.id_dir = this.GetFullIdPath();
-            //保存
-            SQLiteTransaction trans = mDb.BeginTransaction();
-            newChild.InsertToDB();
-            this.UpdateToDB(new SQLiteParameter[] { 
-                new SQLiteParameter(FIELD_NEXT_CHILD_NO.name){Value = this.next_child_no},
-                new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
-            });            
-            trans.Commit();
-        }
-
-        public void InsertNewChildBetween(Guide newChild, Guide before, Guide after)
-        {
-            if (newChild == null) return;
-            if (after == null)
-            {//后面没有子节点
-                AppendNewChild(newChild);
-                return;
-            }
-            else
-            {
-                this.child_guide_num += 1;
-                newChild.parent = this.id;
-                newChild.id_dir = this.GetFullIdPath();
-                if (before == null)
-                {//在首部添加
-                    newChild.child_no = after.child_no / 2;
-                }
-                else
-                {//在两个对象之间添加
-                    newChild.child_no = (before.child_no + after.child_no) / 2;
-                }
-                //保存
-                SQLiteTransaction trans = mDb.BeginTransaction();
-                newChild.InsertToDB();
-                this.UpdateToDB(new SQLiteParameter[] {                 
-                    new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
-                });
-                trans.Commit();
-            }
-        }
-
-        public void DeleteChild(Guide child)
-        {
-            if (child == null) return;
-            this.child_guide_num -= 1;
-            child.delete_type = DELETE_TYPE_BY_USER;
-            SQLiteTransaction trans = mDb.BeginTransaction();
-            //update parent
-            this.UpdateToDB(new SQLiteParameter[] {                 
-                    new SQLiteParameter(FIELD_CHILD_GUIDE_NUM.name){Value = this.child_guide_num},
-            });
-            //update child
-            child.UpdateToDB(new SQLiteParameter[] {                 
-                    new SQLiteParameter(FIELD_DELETE_TYPE.name){Value = child.delete_type},
-                });
-            //update descendants of child
-            if (child.child_guide_num != 0)
-            {//Update guide SET delete_type=delete_by_parent where id_dir like child.id_dir + "-" + child.id%
-                SQLiteCommand cmd = new SQLiteCommand(mDb.connection);                
-                cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {2} LIKE @{2}",
-                    GetMyDbTable().TableName, FIELD_DELETE_TYPE.name, FIELD_ID_DIR.name);
-                cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_BY_PARENT });
-                cmd.Parameters.Add(new SQLiteParameter(FIELD_ID_DIR.name) { Value = child.GetFullIdPath() + "%" });
-                cmd.ExecuteNonQuery();            
-            }
-            trans.Commit();
-        }
+                new SQLiteParameter(FIELD_ID_DIR.name){Value = id_dir}, 
+            };
+        }        
         
+        //创建指定类型的向导根节点。
         private static Guide CreateRootGuide(int type)
         {
             Guide result;
@@ -149,22 +101,28 @@ namespace MyAssistant.db
             return null;
         }
 
+        //默认的收集向导根节点ID。
+        private const string COLLECT_GUIDE_ROOT_ID = "collect0root0guide0id88888888888";
+
         internal Guide(string initId = null) : base(initId)
         {            
         }
-
-        private const string COLLECT_GUIDE_ROOT_ID = "collect0root0guide0id88888888888";
+                       
+        public string text { get; set; }
+        private const string NAME_OF_FIELD_TEXT = "text";
+        public static MyDbField FIELD_TEXT = new MyDbField(NAME_OF_FIELD_TEXT, MyDbField.TYPE_TEXT, null);
+                
+        public int type { get; set; }
+        private const string NAME_OF_FIELD_TYPE = "type";
+        private static MyDbField FIELD_TYPE = new MyDbField(NAME_OF_FIELD_TYPE, MyDbField.TYPE_INTEGER, "NOT NULL");
 
         protected override void ReadFieldValue(string fieldName, SQLiteDataReader reader, int valueIndex)
-        {            
+        {
             switch (fieldName)
-            {                
+            {
                 case NAME_OF_FIELD_TEXT:
                     text = reader.GetString(valueIndex);
-                    break;             
-                case NAME_OF_FIELD_CHILD_GUIDE_NUM:
-                    child_guide_num = reader.GetInt32(valueIndex);
-                    break;                
+                    break;
                 case NAME_OF_FIELD_TYPE:
                     type = reader.GetInt32(valueIndex);
                     break;
@@ -173,34 +131,31 @@ namespace MyAssistant.db
                     break;
             }
         }
-                
-        public string text { get; set; }
-        private const string NAME_OF_FIELD_TEXT = "text";
-        public static MyDbField FIELD_TEXT = new MyDbField(NAME_OF_FIELD_TEXT, MyDbField.TYPE_TEXT, null);
         
-        public int child_guide_num { get; set; }
-        private const string NAME_OF_FIELD_CHILD_GUIDE_NUM = "child_guide_num";
-        private static MyDbField FIELD_CHILD_GUIDE_NUM = new MyDbField(NAME_OF_FIELD_CHILD_GUIDE_NUM, MyDbField.TYPE_INTEGER, "DEFAULT 0");
+        //本对象在基类基础上新增的字段。
+        private static List<MyDbField> mMyFields = new List<MyDbField>()
+        {
+            FIELD_TEXT,
+            FIELD_TYPE,
+        };
 
-        public int type { get; set; }
-        private const string NAME_OF_FIELD_TYPE = "type";
-        private static MyDbField FIELD_TYPE = new MyDbField(NAME_OF_FIELD_TYPE, MyDbField.TYPE_INTEGER, "NOT NULL");
+        //本对象的索引信息，后期根据实际应用优化后增加。
+        private static List<MyDbIndex> mMyIndexes = new List<MyDbIndex>()
+        {                                                  
+        };
 
-        private static MyDbField[] mFields = {
-                                                FIELD_ID,
-                                                FIELD_DELETE_TYPE,
-                                                FIELD_PARENT,
-                                                FIELD_CHILD_NO,
-                                                FIELD_NEXT_CHILD_NO,
-                                                FIELD_TEXT,                                                
-                                                FIELD_CHILD_GUIDE_NUM,                                                
-                                                FIELD_TYPE,    
-                                                FIELD_ID_DIR,
-                                             };
-        private static MyDbIndex[] mIndexes = {
-                                                  
-                                              };
-        internal static MyDbTable mTable = new MyDbTable("guide", mFields, mIndexes);
+
+        //实际的存储Guide对象的表信息。表名、字段、索引。字段、索引要调用直接基类的函数来合并。
+        internal static MyDbTable mTable = new MyDbTable(
+            "guide", 
+            MyDbTreeItem.CalFields(mMyFields), 
+            MyDbTreeItem.CalIndexes(mMyIndexes)
+            );
+
+        /// <summary>
+        /// 返回存储Guide对象的表信息。
+        /// </summary>
+        /// <returns></returns>
         public override MyDbTable GetMyDbTable()
         {
             return mTable;

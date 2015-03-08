@@ -34,6 +34,7 @@
             this.cxtMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.menuNewGuide = new System.Windows.Forms.ToolStripMenuItem();
             this.menuNewChildGuide = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuInsertGuide = new System.Windows.Forms.ToolStripMenuItem();
             this.menuDelete = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.treeGuides)).BeginInit();
             this.cxtMenu.SuspendLayout();
@@ -49,6 +50,8 @@
             this.treeGuides.Dock = System.Windows.Forms.DockStyle.Fill;
             this.treeGuides.FullRowSelect = true;
             this.treeGuides.HideSelection = false;
+            this.treeGuides.IsSimpleDragSource = true;
+            this.treeGuides.IsSimpleDropSink = true;
             this.treeGuides.Location = new System.Drawing.Point(0, 0);
             this.treeGuides.Name = "treeGuides";
             this.treeGuides.OwnerDraw = true;
@@ -59,6 +62,9 @@
             this.treeGuides.View = System.Windows.Forms.View.Details;
             this.treeGuides.VirtualMode = true;
             this.treeGuides.CellEditFinishing += new BrightIdeasSoftware.CellEditEventHandler(this.treeGuides_CellEditFinishing);
+            this.treeGuides.ModelCanDrop += new System.EventHandler<BrightIdeasSoftware.ModelDropEventArgs>(this.treeGuides_ModelCanDrop);
+            this.treeGuides.ModelDropped += new System.EventHandler<BrightIdeasSoftware.ModelDropEventArgs>(this.treeGuides_ModelDropped);
+            this.treeGuides.KeyDown += new System.Windows.Forms.KeyEventHandler(this.treeGuides_KeyDown);
             // 
             // olvClmText
             // 
@@ -72,9 +78,10 @@
             this.cxtMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.menuNewGuide,
             this.menuNewChildGuide,
+            this.menuInsertGuide,
             this.menuDelete});
             this.cxtMenu.Name = "cxtMenu";
-            this.cxtMenu.Size = new System.Drawing.Size(125, 70);
+            this.cxtMenu.Size = new System.Drawing.Size(125, 92);
             // 
             // menuNewGuide
             // 
@@ -89,6 +96,13 @@
             this.menuNewChildGuide.Size = new System.Drawing.Size(124, 22);
             this.menuNewChildGuide.Text = "新建子项";
             this.menuNewChildGuide.Click += new System.EventHandler(this.menuNewChildGuide_Click);
+            // 
+            // menuInsertGuide
+            // 
+            this.menuInsertGuide.Name = "menuInsertGuide";
+            this.menuInsertGuide.Size = new System.Drawing.Size(124, 22);
+            this.menuInsertGuide.Text = "插入";
+            this.menuInsertGuide.Click += new System.EventHandler(this.menuInsertGuide_Click);
             // 
             // menuDelete
             // 
@@ -120,5 +134,6 @@
         private System.Windows.Forms.ToolStripMenuItem menuNewGuide;
         private System.Windows.Forms.ToolStripMenuItem menuNewChildGuide;
         private System.Windows.Forms.ToolStripMenuItem menuDelete;
+        private System.Windows.Forms.ToolStripMenuItem menuInsertGuide;
     }
 }
