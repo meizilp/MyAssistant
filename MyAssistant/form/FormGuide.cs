@@ -276,7 +276,7 @@ namespace MyAssistant.form
             }
             e.RefreshObjects();
         }
-
+        
         private void treeGuides_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Modifiers == Keys.Control)
@@ -284,13 +284,28 @@ namespace MyAssistant.form
                 if (e.KeyCode == Keys.N)
                 {//在其后新增一项
                     AppendNewGuide();
-                }                
+                }
+                else if (e.KeyCode == Keys.X)
+                {//剪切
+                    Guide x = treeGuides.SelectedObject as Guide;
+                    if (x == null) return;                    
+                    Guide p = treeGuides.GetParent(x) as Guide;
+                    treeGuides.RefreshObject(p);
+                }
+                else if (e.KeyCode == Keys.V)
+                {//粘贴
+                    
+                }          
             }
             else if (e.Modifiers == (Keys.Control | Keys.Shift))
             {
                 if (e.KeyCode == Keys.N)
                 {//在其子节点列表最后增加一项
                     AppendNewChildGuide();
+                }
+                else if (e.KeyCode == Keys.V)
+                {//粘贴为子节点
+
                 }
             }       
         }
