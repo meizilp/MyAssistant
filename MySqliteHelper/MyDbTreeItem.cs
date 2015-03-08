@@ -165,11 +165,12 @@ namespace MySqliteHelper
             child.DeleteFromDB(DELETE_TYPE_BY_USER);            
             //update descendants of child
             if (child.child_count != 0)
-            {//Update guide SET delete_type=delete_by_parent where id_dir like child.id_dir + "-" + child.id%
+            {//Update guide SET delete_type=delete_by_parent where delete_type=no_delete and id_dir like child.id_dir + "-" + child.id%
                 SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
-                cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {2} LIKE @{2}",
+                cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {1}=@{1}2 AND {2} LIKE @{2}",
                     GetMyDbTable().TableName, FIELD_DELETE_TYPE.name, FIELD_ID_DIR.name);
                 cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_BY_PARENT });
+                cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name+"2") { Value = DELETE_TYPE_NOT_DELETE });
                 cmd.Parameters.Add(new SQLiteParameter(FIELD_ID_DIR.name) { Value = child.GetFullIdPath() + "%" });
                 cmd.ExecuteNonQuery();
             }
