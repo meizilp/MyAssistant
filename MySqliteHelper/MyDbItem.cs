@@ -77,14 +77,14 @@ namespace MySqliteHelper
         }
 
         /// <summary>
-        /// 实现从读取某个字段的值。类似于：
+        /// 实现从读取指定字段的值。类似于：
         /// switch (fieldName) 
         /// {
         ///     case FIELD1:
         ///         field1_var = reader.GetXXX(valueIndex);
         ///         break;
         /// }
-        /// 子类必须要实现读取自己所声明的字段。
+        /// 每个类必须要实现读取自己所声明的字段。
         /// </summary>
         /// <param name="fieldName"></param>
         /// <param name="reader"></param>
@@ -259,5 +259,7 @@ namespace MySqliteHelper
             if (initId == null) this.id = Guid.NewGuid().ToString("N");
             else this.id = initId;
         }
+
+        public const long CHILD_ITEM_SPAN = 1048576L;
     }
 }

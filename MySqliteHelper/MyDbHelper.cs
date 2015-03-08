@@ -187,8 +187,6 @@ namespace MySqliteHelper
         public SQLiteTransaction BeginTransaction()
         {
             return mConnection.BeginTransaction();
-        }
-
-        public const long CHILD_ITEM_SPAN = 1048576L;
+        }        
     }
 }

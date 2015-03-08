@@ -224,7 +224,8 @@ namespace MyAssistant.form
     class NewGuideWrapper : Guide
     {
         internal Guide parentObject;
-        internal Guide siblingObject;        
+        internal Guide siblingObject;
+        internal bool isBeforeSibling;
         internal int index;
         internal NewGuideWrapper()
             : base("")

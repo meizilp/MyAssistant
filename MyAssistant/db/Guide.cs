@@ -10,7 +10,15 @@ namespace MyAssistant.db
     internal class Guide : MyDbTreeItem
     {
 
+        //收集向导
         public const int GUIDE_TYPE_COLLECT = 0;
+        //处理向导
+
+        /// <summary>
+        /// 获取指定类型的Guide的根节点。
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public static Guide GetRootGuide(int type)
         {
             SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
@@ -33,6 +41,10 @@ namespace MyAssistant.db
             }
         }
 
+        /// <summary>
+        /// 获取本对象所有的直接子对象。
+        /// </summary>
+        /// <returns></returns>
         public List<Guide> GetChildGuides()
         {
             SQLiteDataReader reader = GetChildren();
@@ -48,6 +60,7 @@ namespace MyAssistant.db
             return results;
         }
 
+        //插入一个新Guide对象所需要填充的字段。
         protected override SQLiteParameter[] GetParamsOfInsertToDB()
         {
             return new SQLiteParameter[] { 
@@ -60,6 +73,7 @@ namespace MyAssistant.db
             };
         }        
         
+        //创建指定类型的向导根节点。
         private static Guide CreateRootGuide(int type)
         {
             Guide result;
@@ -74,29 +88,13 @@ namespace MyAssistant.db
             return null;
         }
 
-        internal Guide(string initId = null) : base(initId)
-        {            
-        }
-
         //默认的收集向导根节点ID。
         private const string COLLECT_GUIDE_ROOT_ID = "collect0root0guide0id88888888888";
 
-        protected override void ReadFieldValue(string fieldName, SQLiteDataReader reader, int valueIndex)
+        internal Guide(string initId = null) : base(initId)
         {            
-            switch (fieldName)
-            {                
-                case NAME_OF_FIELD_TEXT:
-                    text = reader.GetString(valueIndex);
-                    break;                             
-                case NAME_OF_FIELD_TYPE:
-                    type = reader.GetInt32(valueIndex);
-                    break;
-                default:
-                    base.ReadFieldValue(fieldName, reader, valueIndex);
-                    break;
-            }
         }
-                
+                       
         public string text { get; set; }
         private const string NAME_OF_FIELD_TEXT = "text";
         public static MyDbField FIELD_TEXT = new MyDbField(NAME_OF_FIELD_TEXT, MyDbField.TYPE_TEXT, null);
@@ -105,23 +103,46 @@ namespace MyAssistant.db
         private const string NAME_OF_FIELD_TYPE = "type";
         private static MyDbField FIELD_TYPE = new MyDbField(NAME_OF_FIELD_TYPE, MyDbField.TYPE_INTEGER, "NOT NULL");
 
+        protected override void ReadFieldValue(string fieldName, SQLiteDataReader reader, int valueIndex)
+        {
+            switch (fieldName)
+            {
+                case NAME_OF_FIELD_TEXT:
+                    text = reader.GetString(valueIndex);
+                    break;
+                case NAME_OF_FIELD_TYPE:
+                    type = reader.GetInt32(valueIndex);
+                    break;
+                default:
+                    base.ReadFieldValue(fieldName, reader, valueIndex);
+                    break;
+            }
+        }
         
+        //本对象在基类基础上新增的字段。
         private static List<MyDbField> mMyFields = new List<MyDbField>()
         {
             FIELD_TEXT,
             FIELD_TYPE,
         };
 
+        //本对象的索引信息，后期根据实际应用优化后增加。
         private static List<MyDbIndex> mMyIndexes = new List<MyDbIndex>()
         {                                                  
         };
 
+
+        //实际的存储Guide对象的表信息。表名、字段、索引。字段、索引要调用直接基类的函数来合并。
         internal static MyDbTable mTable = new MyDbTable(
             "guide", 
             MyDbTreeItem.CalFields(mMyFields), 
             MyDbTreeItem.CalIndexes(mMyIndexes)
             );
 
+        /// <summary>
+        /// 返回存储Guide对象的表信息。
+        /// </summary>
+        /// <returns></returns>
         public override MyDbTable GetMyDbTable()
         {
             return mTable;

@@ -8,7 +8,10 @@ namespace MySqliteHelper
 {
     public abstract class MyDbTreeItem : MyDbItem
     {
-        //Get Children
+        /// <summary>
+        /// 查询此节点的所有直接直接点。
+        /// </summary>
+        /// <returns></returns>
         protected SQLiteDataReader GetChildren()
         {//select * from table where parent = this.id and delete_type = 0 order by child_no
             SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
@@ -19,7 +22,10 @@ namespace MySqliteHelper
             return cmd.ExecuteReader();            
         }
 
-        //Get Root Node's ID
+        /// <summary>
+        /// 获取此节点的根节点ID，现在是取路径的前32个字符。
+        /// </summary>
+        /// <returns></returns>
         public string GetRootID()
         {
             if (this.parent == null) return this.id;
@@ -40,10 +46,11 @@ namespace MySqliteHelper
         /// <summary>
         /// 在尾部添加一个新的子节点。
         /// </summary>
-        /// <param name="newChild"></param>
+        /// <param name="newChild">要添加的新节点，必须是新建的对象，未在数据库中存储过。</param>
         public void AppendNewChild(MyDbTreeItem newChild)
         {
-            this.next_child_no += MyDbHelper.CHILD_ITEM_SPAN;
+            if (newChild == null || newChild.delete_type != DELETE_TYPE_NOT_DELETE) return;
+            this.next_child_no += CHILD_ITEM_SPAN;
             this.child_count += 1;
             newChild.parent = this.id;
             newChild.child_no = this.next_child_no;
@@ -61,12 +68,12 @@ namespace MySqliteHelper
         /// <summary>
         /// 在两个对象之间添加添加一个新的子节点。
         /// </summary>
-        /// <param name="newChild"></param>
+        /// <param name="newChild">要插入的新对象，必须是新建的对象。</param>
         /// <param name="before"></param>
         /// <param name="after"></param>
         public void InsertNewChildBetween(MyDbTreeItem newChild, MyDbTreeItem before, MyDbTreeItem after)
         {
-            if (newChild == null) return;
+            if (newChild == null || newChild.delete_type != DELETE_TYPE_NOT_DELETE) return;
             if (after == null)
             {//后面没有子节点
                 AppendNewChild(newChild);
@@ -112,18 +119,18 @@ namespace MySqliteHelper
                 this.id_dir = newParent.GetFullIdPath();
             }
             if (newAfter == null)
-            {//后面没有节点
-                newParent.next_child_no += MyDbHelper.CHILD_ITEM_SPAN;
+            {//后面没有节点则在尾部追加。
+                newParent.next_child_no += CHILD_ITEM_SPAN;
                 this.child_no = newParent.next_child_no;                
             }
             else
             {
                 if (newBefore == null)
-                {
+                {//前面没有节点，那么序号等于后节点的一半。
                     this.child_no = newAfter.child_no / 2;
                 }
                 else
-                {
+                {//前后都有节点，那么序号取中值。
                     this.child_no = (newBefore.child_no + newAfter.child_no) / 2;
                 }
             }
@@ -147,8 +154,7 @@ namespace MySqliteHelper
         }
 
         /// <summary>
-        /// 删除一个子节点。
-        /// 子节点移动不要调用此函数来组合，直接使用Move函数。
+        /// 删除一个子节点。        
         /// 操作完成后父节点的子节点介绍一个；子节点本身被标记删除；子节点的子节点们也被标记删除。
         /// </summary>
         /// <param name="child"></param>
@@ -206,7 +212,7 @@ namespace MySqliteHelper
         public static MyDbField FIELD_CHILD_COUNT = new MyDbField(NAME_OF_FIELD_CHILD_COUNT, MyDbField.TYPE_INTEGER, "DEFAULT 0");
         
         
-        //计算列信息，把本类定义的插入到子类定义的前面
+        //直接继承的子类会调用此函数，把子类的字段信息传递过来合并到一起。
         protected new static List<MyDbField> CalFields(List<MyDbField> childFields)
         {
             List<MyDbField> myFields = new List<MyDbField>();
@@ -217,13 +223,13 @@ namespace MySqliteHelper
             return MyDbItem.CalFields(myFields);
         }
 
-        //计算索引信息
+        //直接继承的子类会调用此函数把索引信息传递过来合并到一起。
         protected new static List<MyDbIndex> CalIndexes(List<MyDbIndex> childIndexes)
         {
             return MyDbItem.CalIndexes(childIndexes);
         }
 
-        //读取本类中定义的字段
+        //读取本类中定义的字段的值。
         protected override void ReadFieldValue(string fieldName, System.Data.SQLite.SQLiteDataReader reader, int valueIndex)
         {
             switch (fieldName)
