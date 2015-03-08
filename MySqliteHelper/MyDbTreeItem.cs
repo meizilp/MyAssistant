@@ -163,12 +163,47 @@ namespace MySqliteHelper
         public void MoveUp()
         {
             if (no == 0) return;
+            SQLiteTransaction trans = mDb.BeginTransaction();
+            //UPDATE guide SET no=no+1 WHERE parent = this.parent and deleted = 0 and no = this.no -1 
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
+            cmd.CommandText = String.Format("UPDATE {0} SET {1}={1}+1 WHERE {2}=@{2} AND {3}=@{3} AND {1}=@{1}",
+                GetMyDbTable().TableName,
+                FIELD_NO.name,
+                FIELD_PARENT.name,
+                FIELD_DELETE_TYPE.name
+                );
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_PARENT.name) { Value = this.parent });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_NOT_DELETE });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_NO.name) { Value = no - 1 });
+            if (cmd.ExecuteNonQuery() != 0)
+            {//确实修改了前一个节点
+                --no;
+                UpdateToDB(new SQLiteParameter(FIELD_NO.name) { Value = this.no });
+            }
+            trans.Commit();
         }
 
         //向下移动一个位置。后一个的no-1，自己的no+1
         public void MoveDown()
         {
-
+            SQLiteTransaction trans = mDb.BeginTransaction();
+            //UPDATE guide SET no=no-1 WHERE parent = this.parent and deleted = 0 and no = this.no + 1 
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
+            cmd.CommandText = String.Format("UPDATE {0} SET {1}={1}-1 WHERE {2}=@{2} AND {3}=@{3} AND {1}=@{1}",
+                GetMyDbTable().TableName,
+                FIELD_NO.name,
+                FIELD_PARENT.name,
+                FIELD_DELETE_TYPE.name
+                );
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_PARENT.name) { Value = this.parent });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_NOT_DELETE });
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_NO.name) { Value = no + 1 });
+            if (cmd.ExecuteNonQuery() != 0)
+            {//确实修改了后一个节点
+                ++no;
+                UpdateToDB(new SQLiteParameter(FIELD_NO.name) { Value = this.no });
+            }
+            trans.Commit();
         }
 
         //解除和一个child的关系。子节点数-1；所有此节点后的no-1
@@ -238,7 +273,7 @@ namespace MySqliteHelper
                     if (sibling != null && this.no == sibling.no + 1) return;
                 }
                 //只是改变位置
-                //SQLiteTransaction trans = mDb.BeginTransaction();
+                SQLiteTransaction trans = mDb.BeginTransaction();
                 if (this.no < sibling.no)
                 {//向后移动。比如B-》F
                     MoveBackward(oriParent, sibling, isBefore);
@@ -247,7 +282,7 @@ namespace MySqliteHelper
                 {//向前移动。比如F-》B
                     MoveForward(oriParent, sibling, isBefore);
                 }
-               // trans.Commit();
+                trans.Commit();
             }
             else
             {//跨父节点移动                

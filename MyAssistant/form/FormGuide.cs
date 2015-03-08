@@ -294,8 +294,26 @@ namespace MyAssistant.form
                 }
                 else if (e.KeyCode == Keys.V)
                 {//粘贴
-                    
-                }          
+
+                }
+                else if (e.KeyCode == Keys.Up)
+                {//上移
+                    Guide target = treeGuides.SelectedObject as Guide;
+                    if (target == null) return;
+                    target.MoveUp();
+                    Guide parent = treeGuides.GetParent(target) as Guide;
+                    treeGuides.SelectedObject = target;
+                    treeGuides.RefreshObject(parent);
+                }
+                else if (e.KeyCode == Keys.Down)
+                {//下移
+                    Guide target = treeGuides.SelectedObject as Guide;
+                    if (target == null) return;
+                    target.MoveDown();
+                    Guide parent = treeGuides.GetParent(target) as Guide;
+                    treeGuides.SelectedObject = target;
+                    treeGuides.RefreshObject(parent);
+                }
             }
             else if (e.Modifiers == (Keys.Control | Keys.Shift))
             {
