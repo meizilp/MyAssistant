@@ -296,7 +296,7 @@ namespace MySqliteHelper
         /// <summary>
         /// 删除一个子节点。        
         /// 操作完成后父节点的子节点介绍一个；子节点本身被标记删除；子节点的子节点们也被标记删除。
-        /// 所有其后的兄弟节点索引值减1. UPDATE table_name SET no=no-1 where parent=this.id and deleted=0 and no>this.no
+        /// 所有其后的兄弟节点索引值减1. UPDATE table_name SET no=no-1 where parent=this.id and deleted=0 and no>=this.no+1
         /// </summary>
         /// <param name="child"></param>
         public virtual void DeleteChild(MyDbTreeItem child)
@@ -320,7 +320,7 @@ namespace MySqliteHelper
                 cmd.ExecuteNonQuery();
             }
             //update sibling
-            UpdateChildrenNo(this, -1, this.no, -1);
+            UpdateChildrenNo(this, -1, this.no+1, -1);
             trans.Commit();
         }
         
