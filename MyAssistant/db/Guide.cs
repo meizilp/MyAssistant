@@ -41,6 +41,19 @@ namespace MyAssistant.db
             }
         }
 
+        public static Guide QueryById(string id)
+        {
+            SQLiteDataReader reader = QueryById(id, mTable.TableName);
+            Guide result = null;
+            if (reader.Read())
+            {
+                result = new Guide("");
+                ReadObjectFromDB(result, reader);
+            }
+            reader.Close();
+            return result;
+        }
+
         /// <summary>
         /// 获取本对象所有的直接子对象。
         /// </summary>

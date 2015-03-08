@@ -276,6 +276,8 @@ namespace MyAssistant.form
             }
             e.RefreshObjects();
         }
+
+
         
         private void treeGuides_KeyDown(object sender, KeyEventArgs e)
         {
@@ -288,13 +290,29 @@ namespace MyAssistant.form
                 else if (e.KeyCode == Keys.X)
                 {//剪切
                     Guide x = treeGuides.SelectedObject as Guide;
-                    if (x == null) return;                    
+                    if (x == null) return;
+                    Clipboard.SetData(GuidesInClipboard.Format, new GuidesInClipboard(x.id));                    
                     Guide p = treeGuides.GetParent(x) as Guide;
+                    p.DeleteChild(x);
                     treeGuides.RefreshObject(p);
                 }
                 else if (e.KeyCode == Keys.V)
                 {//粘贴
-
+                    if (Clipboard.ContainsData(GuidesInClipboard.Format))
+                    {
+                        GuidesInClipboard toPasteGuides = Clipboard.GetData(GuidesInClipboard.Format) as GuidesInClipboard;
+                        Guide x = Guide.QueryById(toPasteGuides.toPasteId);                        
+                        if (x != null)
+                        {
+                            Guide sibling = treeGuides.SelectedObject as Guide;
+                            Guide parent;
+                            if (sibling == null) parent = mRoot;
+                            else parent = treeGuides.GetParent(sibling) as Guide;
+                            parent.PasteChild(x, sibling);
+                            treeGuides.RefreshObject(parent);
+                            treeGuides.SelectedObject = x;
+                        }                        
+                    }
                 }
                 else if (e.KeyCode == Keys.Up)
                 {//上移
@@ -323,10 +341,31 @@ namespace MyAssistant.form
                 }
                 else if (e.KeyCode == Keys.V)
                 {//粘贴为子节点
-
+                    if (Clipboard.ContainsData(GuidesInClipboard.Format))
+                    {
+                        GuidesInClipboard toPasteGuides = Clipboard.GetData(GuidesInClipboard.Format) as GuidesInClipboard;
+                        Guide x = Guide.QueryById(toPasteGuides.toPasteId);
+                        if (x != null)
+                        {
+                            Guide parent = treeGuides.SelectedObject as Guide;                                                        
+                            parent.PasteChild(x, null);
+                            if (treeGuides.IsExpanded(parent)) treeGuides.RefreshObject(parent);
+                            else treeGuides.Expand(parent);
+                            treeGuides.SelectedObject = x;
+                        }
+                    }
                 }
             }       
         }
+    }
+
+    [Serializable]
+    public class GuidesInClipboard
+    {
+        public const string Format = "MyAssistant-Guide";
+        public GuidesInClipboard(string id) { _id = id; }
+        private string _id;
+        public string toPasteId { get { return _id; } set { _id = value; } }
     }
 
     class NewGuideWrapper : Guide

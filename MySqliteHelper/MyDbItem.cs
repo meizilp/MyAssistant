@@ -117,6 +117,15 @@ namespace MySqliteHelper
             return item;
         }
 
+        //Select * from table where id = id;
+        protected static SQLiteDataReader QueryById(string id, string table)
+        {
+            SQLiteCommand cmd = new SQLiteCommand(mDb.connection);            
+            cmd.CommandText = String.Format("SELECT * from {0} WHERE {1}=@{1}", table, FIELD_ID.name);
+            cmd.Parameters.Add(new SQLiteParameter(FIELD_ID.name) { Value = id });
+            return cmd.ExecuteReader();
+        }
+
         /// <summary>
         /// 更新给定的字段和值到数据库。
         /// UPDATE table_name SET c1=@c2, c2=@c2 WHERE id=@id
@@ -166,6 +175,15 @@ namespace MySqliteHelper
         {
             delete_type = type;
             UpdateToDB(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = type });            
+        }
+
+        /// <summary>
+        /// 修改删除标记，恢复成未删除。
+        /// </summary>
+        protected virtual void Recovery()
+        {
+            delete_type = DELETE_TYPE_NOT_DELETE;
+            UpdateToDB(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = delete_type });            
         }
         
         /// <summary>

@@ -214,11 +214,18 @@ namespace MySqliteHelper
             this.UpdateToDB(new SQLiteParameter(FIELD_CHILD_COUNT.name) { Value = this.child_count });
         }
 
-        //和一个child建立关系。子节点数+1；所有此节点后的no+1
+        public void PasteChild(MyDbTreeItem child, MyDbTreeItem sibling)
+        {
+            SQLiteTransaction trans = mDb.BeginTransaction();
+            AttachChild(child, sibling, false);
+            trans.Commit();
+        }
+
+        //和一个child建立关系。子节点数+1；所有此节点后的no+1。此child已经已经被删除或者从别的节点上移除。
         private void AttachChild(MyDbTreeItem child, MyDbTreeItem sibling, bool isBefore)
         {            
             child.parent = this.id;                        
-            //update descendants of child
+            //更新所有子孙节点的id_dir路径
             if (child.child_count != 0)
             {//Update guide SET id_dir=replace(old_id_dir,child_path,new_child_path) where id_dir like child.id_dir + "-" + child.id%
                 SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
@@ -228,6 +235,20 @@ namespace MySqliteHelper
                 cmd.ExecuteNonQuery();
             }
             child.id_dir = this.GetFullIdPath();
+            if (child.delete_type != DELETE_TYPE_NOT_DELETE)
+            {//已经被标记删除的对象还要执行恢复本身和所有非用户删除的子孙节点的操作。
+                if (child.child_count != 0)
+                {//Update guide SET deleted = 0 where deleted = 2 and id_dir like child.id_dir + "-" + child.id%
+                    SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
+                    cmd.CommandText = String.Format("UPDATE {0} SET {1}=@{1} WHERE {1}=@{1}2 AND {2} LIKE @{2}",
+                        GetMyDbTable().TableName, FIELD_DELETE_TYPE.name, FIELD_ID_DIR.name);
+                    cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name) { Value = DELETE_TYPE_NOT_DELETE });
+                    cmd.Parameters.Add(new SQLiteParameter(FIELD_DELETE_TYPE.name + "2") { Value = DELETE_TYPE_BY_PARENT });
+                    cmd.Parameters.Add(new SQLiteParameter(FIELD_ID_DIR.name) { Value = child.GetFullIdPath() + "%" });
+                    cmd.ExecuteNonQuery();
+                }
+                child.Recovery();
+            }
 
             if (sibling == null)
             {//在尾部追加
@@ -320,7 +341,7 @@ namespace MySqliteHelper
                 cmd.ExecuteNonQuery();
             }
             //update sibling
-            UpdateChildrenNo(this, -1, this.no+1, -1);
+            UpdateChildrenNo(this, -1, child.no+1, -1);
             trans.Commit();
         }
         
@@ -332,7 +353,7 @@ namespace MySqliteHelper
         {
             if (this.id_dir == null) return this.id;
             return this.id_dir + "-" + this.id;
-        }
+        }     
 
         //get all descendants。LIKE id_dir + self.id%
 
