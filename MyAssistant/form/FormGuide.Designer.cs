@@ -34,8 +34,8 @@
             this.cxtMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.menuNewGuide = new System.Windows.Forms.ToolStripMenuItem();
             this.menuNewChildGuide = new System.Windows.Forms.ToolStripMenuItem();
-            this.menuDelete = new System.Windows.Forms.ToolStripMenuItem();
             this.menuInsertGuide = new System.Windows.Forms.ToolStripMenuItem();
+            this.menuDelete = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.treeGuides)).BeginInit();
             this.cxtMenu.SuspendLayout();
             this.SuspendLayout();
@@ -64,6 +64,7 @@
             this.treeGuides.CellEditFinishing += new BrightIdeasSoftware.CellEditEventHandler(this.treeGuides_CellEditFinishing);
             this.treeGuides.ModelCanDrop += new System.EventHandler<BrightIdeasSoftware.ModelDropEventArgs>(this.treeGuides_ModelCanDrop);
             this.treeGuides.ModelDropped += new System.EventHandler<BrightIdeasSoftware.ModelDropEventArgs>(this.treeGuides_ModelDropped);
+            this.treeGuides.KeyDown += new System.Windows.Forms.KeyEventHandler(this.treeGuides_KeyDown);
             // 
             // olvClmText
             // 
@@ -80,35 +81,35 @@
             this.menuInsertGuide,
             this.menuDelete});
             this.cxtMenu.Name = "cxtMenu";
-            this.cxtMenu.Size = new System.Drawing.Size(153, 114);
+            this.cxtMenu.Size = new System.Drawing.Size(125, 92);
             // 
             // menuNewGuide
             // 
             this.menuNewGuide.Name = "menuNewGuide";
-            this.menuNewGuide.Size = new System.Drawing.Size(152, 22);
+            this.menuNewGuide.Size = new System.Drawing.Size(124, 22);
             this.menuNewGuide.Text = "新建";
             this.menuNewGuide.Click += new System.EventHandler(this.menuNewGuide_Click);
             // 
             // menuNewChildGuide
             // 
             this.menuNewChildGuide.Name = "menuNewChildGuide";
-            this.menuNewChildGuide.Size = new System.Drawing.Size(152, 22);
+            this.menuNewChildGuide.Size = new System.Drawing.Size(124, 22);
             this.menuNewChildGuide.Text = "新建子项";
             this.menuNewChildGuide.Click += new System.EventHandler(this.menuNewChildGuide_Click);
-            // 
-            // menuDelete
-            // 
-            this.menuDelete.Name = "menuDelete";
-            this.menuDelete.Size = new System.Drawing.Size(152, 22);
-            this.menuDelete.Text = "删除";
-            this.menuDelete.Click += new System.EventHandler(this.menuDelete_Click);
             // 
             // menuInsertGuide
             // 
             this.menuInsertGuide.Name = "menuInsertGuide";
-            this.menuInsertGuide.Size = new System.Drawing.Size(152, 22);
+            this.menuInsertGuide.Size = new System.Drawing.Size(124, 22);
             this.menuInsertGuide.Text = "插入";
             this.menuInsertGuide.Click += new System.EventHandler(this.menuInsertGuide_Click);
+            // 
+            // menuDelete
+            // 
+            this.menuDelete.Name = "menuDelete";
+            this.menuDelete.Size = new System.Drawing.Size(124, 22);
+            this.menuDelete.Text = "删除";
+            this.menuDelete.Click += new System.EventHandler(this.menuDelete_Click);
             // 
             // FormGuide
             // 

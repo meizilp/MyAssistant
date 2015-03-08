@@ -50,23 +50,28 @@ namespace MyAssistant.form
             treeGuides.EditModel(mNewGuide);
         }
 
-        //追加新节点
-        private void menuNewGuide_Click(object sender, EventArgs e)
-        {            
-            mNewGuide = new NewGuideWrapper();            
+        private void AppendNewGuide()
+        {
+            mNewGuide = new NewGuideWrapper();
             Guide selectedGuide = treeGuides.SelectedObject as Guide;
             if (selectedGuide == null || selectedGuide.parent == null)
             {//没有选择任何节点或选择了根节点，在根节点的子节点列表最后添加。                
-                mNewGuide.parentObject = mRoot;                
+                mNewGuide.parentObject = mRoot;
             }
-            else 
+            else
             {//在选中节点的后面添加，父节点就是选中节点的父节点。
                 mNewGuide.parentObject = treeGuides.GetParent(selectedGuide) as Guide;
                 //如果选中节点不是最后一个（索引小于最后一个的索引），那么记录兄弟节点。否则就转化为在父节点的子节点列表尾部添加。
                 List<Guide> children = mNewGuide.parentObject.GetChildGuides();
-                if (children.IndexOf(mNewGuide.siblingObject) < children.Count - 1) mNewGuide.siblingObject = selectedGuide;                
+                if (children.IndexOf(mNewGuide.siblingObject) < children.Count - 1) mNewGuide.siblingObject = selectedGuide;
             }
             BeginEditNewGuide();
+        }
+
+        //追加新节点
+        private void menuNewGuide_Click(object sender, EventArgs e)
+        {
+            AppendNewGuide();    
         }
 
         //插入新节点
@@ -87,19 +92,24 @@ namespace MyAssistant.form
             BeginEditNewGuide();
         }
 
-        //插入子节点
-        private void menuNewChildGuide_Click(object sender, EventArgs e)
+        private void AppendNewChildGuide()
         {
             mNewGuide = new NewGuideWrapper();
             if (treeGuides.SelectedObject == null)
             {//没有选择任何节点，在根节点的最后添加。                
-                mNewGuide.parentObject = mRoot;                
+                mNewGuide.parentObject = mRoot;
             }
             else
             {//在选中节点的子列表最后面添加                
-                mNewGuide.parentObject = treeGuides.SelectedObject as Guide;                                
+                mNewGuide.parentObject = treeGuides.SelectedObject as Guide;
             }
             BeginEditNewGuide();
+        }
+
+        //插入子节点
+        private void menuNewChildGuide_Click(object sender, EventArgs e)
+        {
+            AppendNewChildGuide(); 
         }
 
         //删除选中节点
@@ -265,7 +275,25 @@ namespace MyAssistant.form
                     break;
             }
             e.RefreshObjects();
-        }       
+        }
+
+        private void treeGuides_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Modifiers == Keys.Control)
+            {
+                if (e.KeyCode == Keys.N)
+                {//在其后新增一项
+                    AppendNewGuide();
+                }                
+            }
+            else if (e.Modifiers == (Keys.Control | Keys.Shift))
+            {
+                if (e.KeyCode == Keys.N)
+                {//在其子节点列表最后增加一项
+                    AppendNewChildGuide();
+                }
+            }       
+        }
     }
 
     class NewGuideWrapper : Guide
