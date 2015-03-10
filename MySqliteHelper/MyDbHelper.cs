@@ -20,7 +20,7 @@ namespace MySqliteHelper
         /// <summary>
         /// 以指定的文件路径创建数据库对象，此时尚未打开数据库。
         /// </summary>
-        /// <param name="dbPath"></param>
+        /// <param name="dbPath">Sqlite数据库文件路径。</param>
         public MyDbHelper(string dbPath)
         {
             string dbSource = "Data Source =" + dbPath;
@@ -39,7 +39,7 @@ namespace MySqliteHelper
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="type">"table"或者"index"</param>
-        /// <returns></returns>
+        /// <returns>数据库中所有已经存储的表名或者索引表名。</returns>
         private HashSet<string> QueryAllTablesInDb(SQLiteConnection connection, string type)
         {
             HashSet<string> results = new HashSet<string>();
@@ -87,13 +87,11 @@ namespace MySqliteHelper
         // 创建存储此类对象的表。        
         private void CreateTable(MyDbTable t)
         {
-            StringBuilder s = new StringBuilder();            
-            bool isFirst = true;
-            foreach (MyDbField clm in t.ColumnInfos)
+            StringBuilder s = new StringBuilder();
+            for (int i = 0; i < t.ColumnInfos.Count; ++i)
             {
-                if (isFirst) isFirst = false;
-                else s.Append(", ");
-                s.Append(String.Format("{0} {1} {2}", clm.name, clm.type, clm.constraint));                
+                if (i != 0) s.Append(", ");
+                s.Append(String.Format("{0} {1} {2}", t.ColumnInfos[i].name, t.ColumnInfos[i].type, t.ColumnInfos[i].constraint));                
             }            
             string sql = String.Format("CREATE TABLE {0} ({1})", t.TableName, s.ToString());
             SQLiteCommand cmd = new SQLiteCommand(sql, mConnection);
