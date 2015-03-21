@@ -9,9 +9,8 @@ namespace MySqliteHelper
     public abstract class MyDbTreeItem : MyDbItem
     {
         /// <summary>
-        /// 查询此节点的所有直接直接点。
-        /// </summary>
-        /// <returns></returns>
+        /// 查询此节点的所有直接子节点。
+        /// </summary>        
         protected SQLiteDataReader GetChildren()
         {//select * from table where parent = this.id and delete_type = 0 order by no
             SQLiteCommand cmd = new SQLiteCommand(mDb.connection);
@@ -24,8 +23,7 @@ namespace MySqliteHelper
 
         /// <summary>
         /// 获取此节点的根节点ID，现在是取路径的前32个字符。
-        /// </summary>
-        /// <returns></returns>
+        /// </summary>        
         public string GetRootID()
         {
             if (this.parent == null) return this.id;
